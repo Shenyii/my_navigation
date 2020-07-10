@@ -1,0 +1,5 @@
+<library path="lib/libinformed_rrt_lib">
+  <class name="my_navigation/InformedRrt" type="informed_rrt::InformedRrt" base_class_type="nav_core::BaseGlobalPlanner">
+    <description>This is a global planner plugin write by myself.</description>
+  </class>
+ </library>
