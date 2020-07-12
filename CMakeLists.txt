@@ -135,7 +135,7 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/my_navigation.cpp
 # )
-add_library(informed_rrt_lib src/informed_rrt.cpp)
+add_library(informed_rrt_lib src/informed_rrt.cpp src/node.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

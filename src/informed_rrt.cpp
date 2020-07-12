@@ -14,37 +14,43 @@ namespace informed_rrt
     {}
 
     InformedRrt::InformedRrt(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
-    : costmap_ros_(NULL), initialized_(false)
-    {
+    : costmap_ros_(NULL), initialized_(false) {
         initialize(name, costmap_ros);
     }
 
-
-    void InformedRrt::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
-    {
-        if(!initialized_)
-        {
+    void InformedRrt::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros) {
+        if(!initialized_) {
+            costmap_ = costmap_ros->getCostmap();
+            //planner_ = boost::shared_ptr<NavFn>(new NavFn(costmap_->getSizeInCellsX(), costmap_->getSizeInCellsY()));
             costmap_ros_ = costmap_ros;
             costmap_ = costmap_ros_->getCostmap();
 
-            ros::NodeHandle private_nh("~/" + name);
+            //ros::NodeHandle private_nh("~/" + name);
+            ros::NodeHandle private_nh;
+            //pub_path_ = private_nh.advertise<nav_msgs::Path>("/move_base/NavfnROS/plan", 1);
+            pub_path_ = private_nh.advertise<nav_msgs::Path>("/own_path", 1);
+            sub_ref_map_ = private_nh.subscribe("/move_base/global_costmap/costmap",1,&InformedRrt::subRefMap,this);
             private_nh.param("step_size", step_size_, costmap_->getResolution());
             private_nh.param("min_dist_from_robot", min_dist_from_robot_, 0.10);
             
             //world_model_ = new base_local_planner::CostmapModel(*costmap_); 
 
             initialized_ = true;
+
+            path_.header.frame_id = costmap_ros->getGlobalFrameID();
+            path_.poses.clear();
         }
-        else
-        {
+        else {
             ROS_WARN("This planner has already been initialized... doing nothing");
         }
     }
 
-    double InformedRrt::footprintCost(double x_i, double y_i, double theta_i)
-    {
-        if(!initialized_)
-        {
+    void InformedRrt::subRefMap(nav_msgs::OccupancyGrid map) {
+        ref_map_ = map;
+    }
+
+    double InformedRrt::footprintCost(double x_i, double y_i, double theta_i) {
+        if(!initialized_) {
             ROS_ERROR("The planner has not been initialized, please call initialize() to use the planner");
             return -1.0;
         }
@@ -56,109 +62,86 @@ namespace informed_rrt
 
         //check if the footprint is legal
         double footprint_cost = world_model_->footprintCost(x_i, y_i, theta_i, footprint);
+
         return footprint_cost;
     }
 
     bool InformedRrt::makePlan(const geometry_msgs::PoseStamped& start, 
-                               const geometry_msgs::PoseStamped& goal, std::vector<geometry_msgs::PoseStamped>& plan)
-    {
-        if(!initialized_)
-        {
-            ROS_ERROR("The planner has not been initialized, please call initialize() to use the planner");
-            return false;
-        }
+                               const geometry_msgs::PoseStamped& goal, 
+                               std::vector<geometry_msgs::PoseStamped>& plan) {
+        start_pose_.x = start.pose.position.x;
+        start_pose_.y = start.pose.position.y;
+        start_pose_.theta = acos(2 * start.pose.orientation.w * start.pose.orientation.w - 1);
+        start_pose_.theta = start.pose.orientation.w * start.pose.orientation.z < 0 ? -start_pose_.theta : start_pose_.theta;
+        goal_.x = goal.pose.position.x;
+        goal_.y = goal.pose.position.y;
+        goal_.theta = acos(2 * goal.pose.orientation.w * goal.pose.orientation.w - 1);
+        goal_.theta = goal.pose.orientation.w * goal.pose.orientation.z < 0 ? -goal_.theta : goal_.theta;
+        cout << "start: " << start_pose_.x << ", " << start_pose_.y << ", " << start_pose_.theta << endl;
+        cout << " goal: " << goal_.x << ", " << goal_.y << ", " << goal_.theta << endl;
+        start_tree_ = new Node(start_pose_.x, start_pose_.y, start_pose_.theta);
+        goal_tree_ = new Node(goal_.x, goal_.y, goal_.theta);
 
-        ROS_DEBUG("Got a start: %.2f, %.2f, and a goal: %.2f, %.2f", start.pose.position.x, start.pose.position.y, goal.pose.position.x, goal.pose.position.y);
+        ///////////////////////////////////
+        // cout << ref_map_.header.frame_id << ", " << ref_map_.info.resolution << ", "
+        //      << ref_map_.info.width << ", " << ref_map_.info.height << ", " << ref_map_.info.origin.position.x
+        //      << ", " << ref_map_.info.origin.position.y << endl;
+        ///////////////////////////////////
+        int map_x, map_y;
+        worldToMap(start_pose_.x, start_pose_.y, map_x, map_y);
+        costmap_->setCost(map_x, map_y, costmap_2d::FREE_SPACE);
+        cout << "obstacle check: " << obstacleCheck(goal_.x, goal_.y) << endl;
+        // while(ros::ok()) {
+        //     int stop_flag = informedRrtSearch();
+        //     if(stop_flag == 0) {}
+        //     else if(stop_flag == 1) {
+        //         cout << "find the path, and pub the path." << endl;
+        //         pub_path_.publish(path_);
+        //         return true;
+        //     }
+        //     else if(stop_flag == 2) {
+        //         cout << "can't find the path." << endl;
+        //         return false;
+        //     }
+        //     ros::Duration(1).sleep();
+        // }
 
-        plan.clear();
-        costmap_ = costmap_ros_->getCostmap();
-
-        if(goal.header.frame_id != costmap_ros_->getGlobalFrameID())
-        {
-            ROS_ERROR("This planner as configured will only accept goals in the %s frame, but a goal was sent in the %s frame.", 
-            costmap_ros_->getGlobalFrameID().c_str(), goal.header.frame_id.c_str());
-            return false;
-        }
-
-        const double start_yaw = tf2::getYaw(start.pose.orientation);
-        const double goal_yaw = tf2::getYaw(goal.pose.orientation);
-
-        //we want to step back along the vector created by the robot's position and the goal pose until we find a legal cell
-        double goal_x = goal.pose.position.x;
-        double goal_y = goal.pose.position.y;
-        double start_x = start.pose.position.x;
-        double start_y = start.pose.position.y;
-
-        double diff_x = goal_x - start_x;
-        double diff_y = goal_y - start_y;
-        double diff_yaw = angles::normalize_angle(goal_yaw-start_yaw);
-
-        double target_x = goal_x;
-        double target_y = goal_y;
-        double target_yaw = goal_yaw;
-
-        bool done = false;
-        double scale = 1.0;
-        double dScale = 0.01;
-
-        while(!done)
-        {
-            if(scale < 0)
-            {
-                target_x = start_x;
-                target_y = start_y;
-                target_yaw = start_yaw;
-                ROS_WARN("The carrot planner could not find a valid plan for this goal");
-                break;
-            }
-            target_x = start_x + scale * diff_x;
-            target_y = start_y + scale * diff_y;
-            target_yaw = angles::normalize_angle(start_yaw + scale * diff_yaw);
-      
-            double footprint_cost = footprintCost(target_x, target_y, target_yaw);
-            if(footprint_cost >= 0)
-            {
-                done = true;
-            }
-            scale -= dScale;
-        }
-
-        plan.push_back(start);
-        geometry_msgs::PoseStamped new_goal = goal;
-        tf2::Quaternion goal_quat;
-        goal_quat.setRPY(0, 0, target_yaw);
-
-        new_goal.pose.position.x = target_x;
-        new_goal.pose.position.y = target_y;
-
-        new_goal.pose.orientation.x = goal_quat.x();
-        new_goal.pose.orientation.y = goal_quat.y();
-        new_goal.pose.orientation.z = goal_quat.z();
-        new_goal.pose.orientation.w = goal_quat.w();
-
-        plan.push_back(new_goal);
-        return (done);
+        ros::Duration(1).sleep();
     }
 
-    // bool InformedRrt::makePlan(const geometry_msgs::PoseStamped& start, 
-    //                            const geometry_msgs::PoseStamped& goal,  
-    //                            std::vector<geometry_msgs::PoseStamped>& plan )
-    // {
-    //     plan.push_back(start);
-    //     for (int i = 0; i < 20; i++)
-    //     {
-    //         geometry_msgs::PoseStamped new_goal = goal;
-    //         tf::Quaternion goal_quat = tf::createQuaternionFromYaw(1.54);
+    int InformedRrt::informedRrtSearch() {
+        int ans = 0;
+        geometry_msgs::Pose2D rand_point;
+        rand_point = generateRandPoint();
+        if(path_.poses.size() == 0) {}
+        else {}
+        return ans;
+    }
 
-    //         new_goal.pose.position.x = 0.5;
-    //         new_goal.pose.position.y = 0.5;
+    geometry_msgs::Pose2D InformedRrt::generateRandPoint() {}
 
-    //         new_goal.pose.orientation.x = goal_quat.x();
-    //         new_goal.pose.orientation.y = goal_quat.y();
-    //         new_goal.pose.orientation.z = goal_quat.z();
-    //         new_goal.pose.orientation.w = goal_quat.w();
+    void InformedRrt::mapToWorld(int mx, int my, double& wx, double& wy) {
+        wx = costmap_->getOriginX() + mx * costmap_->getResolution();
+        wy = costmap_->getOriginY() + my * costmap_->getResolution();
+    }
 
-    //         plan.push_back(new_goal);
-    //     }
-    // }
+    void InformedRrt::worldToMap(double wx, double wy, int& mx, int& my) {
+        unsigned int x, y;
+        costmap_->worldToMap(wx, wy, x, y);
+        mx = int(x);
+        my = int(y);
+    }
+
+    bool InformedRrt::obstacleCheck(double wx, double wy) {
+        unsigned int index;
+        int mx, my;
+        worldToMap(wx, wy, mx, my);
+        index = mx + my * ref_map_.info.width;
+        if(ref_map_.data[index] < 50) {
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    }
 };
