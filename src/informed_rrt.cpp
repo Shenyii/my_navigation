@@ -30,6 +30,8 @@ namespace informed_rrt
             //pub_path_ = private_nh.advertise<nav_msgs::Path>("/move_base/NavfnROS/plan", 1);
             pub_path_ = private_nh.advertise<nav_msgs::Path>("/own_path", 1);
             sub_ref_map_ = private_nh.subscribe("/move_base/global_costmap/costmap",1,&InformedRrt::subRefMap,this);
+            sub_ori_map_ = private_nh.subscribe("/map",1,&InformedRrt::subOriMap,this);
+            pose_valid_threshold_ = 60;
             private_nh.param("step_size", step_size_, costmap_->getResolution());
             private_nh.param("min_dist_from_robot", min_dist_from_robot_, 0.10);
             
@@ -47,6 +49,10 @@ namespace informed_rrt
 
     void InformedRrt::subRefMap(nav_msgs::OccupancyGrid map) {
         ref_map_ = map;
+    }
+
+    void InformedRrt::subOriMap(nav_msgs::OccupancyGrid map) {
+        ori_map_ = map;
     }
 
     double InformedRrt::footprintCost(double x_i, double y_i, double theta_i) {
@@ -82,15 +88,6 @@ namespace informed_rrt
         start_tree_ = new Node(start_pose_.x, start_pose_.y, start_pose_.theta);
         goal_tree_ = new Node(goal_.x, goal_.y, goal_.theta);
 
-        ///////////////////////////////////
-        // cout << ref_map_.header.frame_id << ", " << ref_map_.info.resolution << ", "
-        //      << ref_map_.info.width << ", " << ref_map_.info.height << ", " << ref_map_.info.origin.position.x
-        //      << ", " << ref_map_.info.origin.position.y << endl;
-        ///////////////////////////////////
-        int map_x, map_y;
-        worldToMap(start_pose_.x, start_pose_.y, map_x, map_y);
-        costmap_->setCost(map_x, map_y, costmap_2d::FREE_SPACE);
-        cout << "obstacle check: " << obstacleCheck(goal_.x, goal_.y) << endl;
         // while(ros::ok()) {
         //     int stop_flag = informedRrtSearch();
         //     if(stop_flag == 0) {}
@@ -107,18 +104,39 @@ namespace informed_rrt
         // }
 
         ros::Duration(1).sleep();
+
+        ////////////////////////////////
+        informedRrtSearch();
+        ////////////////////////////////
     }
 
     int InformedRrt::informedRrtSearch() {
         int ans = 0;
         geometry_msgs::Pose2D rand_point;
         rand_point = generateRandPoint();
-        if(path_.poses.size() == 0) {}
+        if(path_.poses.size() == 0) {
+            generateRandPoint();
+        }
         else {}
         return ans;
     }
 
-    geometry_msgs::Pose2D InformedRrt::generateRandPoint() {}
+    geometry_msgs::Pose2D InformedRrt::generateRandPoint() {
+        geometry_msgs::Pose2D ans;
+        int num_point_in_map = ref_map_.info.width * ref_map_.info.height;
+        while(ros::ok()) {
+            int index = rand() % num_point_in_map;
+            if(ori_map_.data[index] > -1) {
+                mapToWorld(index % ref_map_.info.width, index / ref_map_.info.width, ans.x, ans.y);
+                // cout << "test: " << ans.x << ", " << ans.y << endl;
+                // cout << ref_map_.info.width << ", " << ref_map_.info.height << endl;
+                // cout << index << ", " << index % ref_map_.info.width << ", " << index / ref_map_.info.width << endl;
+                // printf("%d\n\n", ref_map_.data[index]);
+                return ans;
+            }
+        }
+        return ans;
+    }
 
     void InformedRrt::mapToWorld(int mx, int my, double& wx, double& wy) {
         wx = costmap_->getOriginX() + mx * costmap_->getResolution();

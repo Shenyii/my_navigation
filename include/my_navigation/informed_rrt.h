@@ -51,20 +51,23 @@
          ros::Publisher pub_path_;
          costmap_2d::Costmap2DROS* costmap_ros_;
          double step_size_, min_dist_from_robot_;
-         ros::Subscriber sub_ref_map_;
-         
          costmap_2d::Costmap2D* costmap_;
          nav_msgs::OccupancyGrid ref_map_;
+         ros::Subscriber sub_ref_map_;
+         nav_msgs::OccupancyGrid ori_map_;
+         ros::Subscriber sub_ori_map_;
          base_local_planner::WorldModel* world_model_;
          ros::Publisher potarr_pub_;
 
          void subRefMap(nav_msgs::OccupancyGrid map);
+         void subOriMap(nav_msgs::OccupancyGrid map);
 
          geometry_msgs::Pose2D start_pose_;
          geometry_msgs::Pose2D goal_;
          Node* start_tree_;
          Node* goal_tree_;
          nav_msgs::Path path_;
+         int pose_valid_threshold_;
 
          double footprintCost(double x_i, double y_i, double theta_i);
          int informedRrtSearch();
