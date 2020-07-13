@@ -32,6 +32,8 @@ namespace informed_rrt
             sub_ref_map_ = private_nh.subscribe("/move_base/global_costmap/costmap",1,&InformedRrt::subRefMap,this);
             sub_ori_map_ = private_nh.subscribe("/map",1,&InformedRrt::subOriMap,this);
             pose_valid_threshold_ = 60;
+            step_ = 0.15;
+            ave_v_ = 1.0;
             private_nh.param("step_size", step_size_, costmap_->getResolution());
             private_nh.param("min_dist_from_robot", min_dist_from_robot_, 0.10);
             
@@ -85,8 +87,8 @@ namespace informed_rrt
         goal_.theta = goal.pose.orientation.w * goal.pose.orientation.z < 0 ? -goal_.theta : goal_.theta;
         cout << "start: " << start_pose_.x << ", " << start_pose_.y << ", " << start_pose_.theta << endl;
         cout << " goal: " << goal_.x << ", " << goal_.y << ", " << goal_.theta << endl;
-        start_tree_ = new Node(start_pose_.x, start_pose_.y, start_pose_.theta);
-        goal_tree_ = new Node(goal_.x, goal_.y, goal_.theta);
+        start_tree_.push_back(new Node(start_pose_.x, start_pose_.y, start_pose_.theta));
+        goal_tree_.push_back(new Node(goal_.x, goal_.y, goal_.theta));
 
         // while(ros::ok()) {
         //     int stop_flag = informedRrtSearch();
@@ -115,7 +117,7 @@ namespace informed_rrt
         geometry_msgs::Pose2D rand_point;
         rand_point = generateRandPoint();
         if(path_.poses.size() == 0) {
-            generateRandPoint();
+            extendTheTree(generateRandPoint());
         }
         else {}
         return ans;
@@ -128,10 +130,7 @@ namespace informed_rrt
             int index = rand() % num_point_in_map;
             if(ori_map_.data[index] > -1) {
                 mapToWorld(index % ref_map_.info.width, index / ref_map_.info.width, ans.x, ans.y);
-                // cout << "test: " << ans.x << ", " << ans.y << endl;
-                // cout << ref_map_.info.width << ", " << ref_map_.info.height << endl;
-                // cout << index << ", " << index % ref_map_.info.width << ", " << index / ref_map_.info.width << endl;
-                // printf("%d\n\n", ref_map_.data[index]);
+                
                 return ans;
             }
         }
@@ -155,11 +154,42 @@ namespace informed_rrt
         int mx, my;
         worldToMap(wx, wy, mx, my);
         index = mx + my * ref_map_.info.width;
-        if(ref_map_.data[index] < 50) {
+        if(ref_map_.data[index] < pose_valid_threshold_) {
             return 0;
         }
         else {
             return 1;
         }
+    }
+
+    void InformedRrt::extendTheTree(geometry_msgs::Pose2D point) {
+        if(generateValidTreeNode(point, start_tree_) && !generateValidTreeNode(point, goal_tree_)) {}
+        else if(!generateValidTreeNode(point, start_tree_) && generateValidTreeNode(point, goal_tree_)) {}
+        else if(generateValidTreeNode(point, start_tree_) && generateValidTreeNode(point, goal_tree_)) {}
+    }
+
+    bool InformedRrt::generateValidTreeNode(geometry_msgs::Pose2D, vector<Node*> tree) {
+        bool ans = false;
+
+        return ans;
+    }
+
+    bool InformedRrt::connectTwoNode(Node* tree1, Node* tree2) {
+        bool ans = false;
+        double t_f = step_ / ave_v_;
+        Matrix<double, 6, 6> A;
+        Matrix<double, 6, 1> param_x;
+        Matrix<double, 6, 1> param_y;
+        Matrix<double, 6, 1> b_x;
+        Matrix<double, 6, 1> b_y;
+        A(0, 0) = 1; A(0, 1) = 0;   A(0, 2) = 0;           A(0, 3) = 0;               A(0, 4) = 0;                A(0, 5) = 0;
+        A(1, 0) = 1; A(1, 1) = t_f; A(1, 2) = pow(t_f, 2); A(1, 3) = pow(t_f, 3);     A(1, 4) = pow(t_f, 4);      A(1, 5) = pow(t_f, 5);
+        A(2, 0) = 0; A(2, 1) = 1;   A(2, 2) = 0;           A(2, 3) = 0;               A(2, 4) = 0;                A(2, 5) = 0;
+        A(3, 0) = 0; A(3, 1) = 1;   A(3, 2) = 2 * t_f;     A(3, 3) = 3 * pow(t_f, 2); A(3, 4) = 4 * pow(t_f, 3);  A(3, 5) = 5 * pow(t_f, 4);
+        A(4, 0) = 0; A(4, 1) = 0;   A(4, 2) = 2;           A(4, 3) = 0;               A(4, 4) = 0;                A(4, 5) = 0;
+        A(5, 0) = 0; A(5, 1) = 0;   A(5, 2) = 2;           A(5, 3) = 6 * t_f;         A(5, 4) = 12 * pow(t_f, 2); A(5, 5) = 20 * pow(t_f, 3);
+
+        ////////////////////待写
+        return ans;
     }
 };

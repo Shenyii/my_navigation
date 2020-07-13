@@ -21,14 +21,13 @@
  #include "node.h"
 
  using std::string;
+ using namespace Eigen;
 
  #ifndef INFORMED_RRT_H
  #define INFORMED_RRT_H
 
- namespace informed_rrt 
- {
-     class InformedRrt : public nav_core::BaseGlobalPlanner 
-     {
+ namespace informed_rrt {
+     class InformedRrt : public nav_core::BaseGlobalPlanner {
      public:
          InformedRrt();
          InformedRrt(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
@@ -64,10 +63,12 @@
 
          geometry_msgs::Pose2D start_pose_;
          geometry_msgs::Pose2D goal_;
-         Node* start_tree_;
-         Node* goal_tree_;
+         vector<Node*> start_tree_;
+         vector<Node*> goal_tree_;
          nav_msgs::Path path_;
          int pose_valid_threshold_;
+         double step_;
+         double ave_v_;
 
          double footprintCost(double x_i, double y_i, double theta_i);
          int informedRrtSearch();
@@ -75,6 +76,9 @@
          void mapToWorld(int mx, int my, double& wx, double& wy);
          void worldToMap(double wx, double wy, int& mx, int& my);
          bool obstacleCheck(double wx, double wy);
+         void extendTheTree(geometry_msgs::Pose2D point);
+         bool generateValidTreeNode(geometry_msgs::Pose2D, vector<Node*> tree);
+         bool connectTwoNode(Node* tree1, Node* tree2);
      };
  };
  #endif
