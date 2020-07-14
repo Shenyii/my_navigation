@@ -281,7 +281,9 @@ namespace informed_rrt
         bool ans = false;
         for(int i = 0; i < tree2.size(); i++) {
             if(pow(tree1[tree1.size() - 1]->x_ - tree2[i]->x_, 2) + pow(tree1[tree1.size() - 1]->y_ - tree2[i]->y_, 2) < trim_scope_ * trim_scope_) {
-                ///
+                if(connectTwoNode(tree1[tree1.size() - 1], tree2[i]) == true) {
+                    ////product a path.
+                }
             }
         }
         return ans;
