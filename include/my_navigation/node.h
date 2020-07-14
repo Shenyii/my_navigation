@@ -12,6 +12,7 @@ public:
     double theta_;
     Node* father_node_;
     double distance_;
+    double t_f_;
 
     Node();
     ~Node();

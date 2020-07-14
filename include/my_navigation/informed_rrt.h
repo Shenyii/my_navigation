@@ -26,6 +26,8 @@
  #ifndef INFORMED_RRT_H
  #define INFORMED_RRT_H
 
+ #define PI 3.14159265
+
  namespace informed_rrt {
      class InformedRrt : public nav_core::BaseGlobalPlanner {
      public:
@@ -68,6 +70,7 @@
          nav_msgs::Path path_;
          int pose_valid_threshold_;
          double step_;
+         double trim_scope_;
          double ave_v_;
 
          double footprintCost(double x_i, double y_i, double theta_i);
@@ -77,8 +80,9 @@
          void worldToMap(double wx, double wy, int& mx, int& my);
          bool obstacleCheck(double wx, double wy);
          void extendTheTree(geometry_msgs::Pose2D point);
-         bool generateValidTreeNode(geometry_msgs::Pose2D, vector<Node*> tree);
-         bool connectTwoNode(Node* tree1, Node* tree2);
+         bool generateValidTreeNode(geometry_msgs::Pose2D point, vector<Node*> tree);
+         bool connectTwoNode(Node* node1, Node* Node2);
+         bool findPathCheck(vector<Node*> tree1, vector<Node*> tree2);
      };
  };
  #endif

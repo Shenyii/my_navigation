@@ -1,7 +1,7 @@
 #include "node.h"
 
 Node::Node()
-: x_(0), y_(0), theta_(0), distance_(-1), father_node_(NULL) {}
+: x_(0), y_(0), theta_(0), distance_(99999), father_node_(NULL) {}
 
 Node::~Node() {}
 
