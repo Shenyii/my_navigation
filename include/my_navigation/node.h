@@ -11,8 +11,9 @@ public:
     double y_;
     double theta_;
     Node* father_node_;
-    double distance_;
-    double t_f_;
+    Node* joint_node_;
+    double dist_to_root_;
+    double dist_of_path_;
 
     Node();
     ~Node();

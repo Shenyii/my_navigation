@@ -15,6 +15,7 @@
  #include <nav_msgs/Path.h>
  #include <geometry_msgs/Pose2D.h>
  #include <nav_msgs/OccupancyGrid.h>
+ #include <sensor_msgs/PointCloud.h>
 
  #include <Eigen/Dense>
 
@@ -72,6 +73,7 @@
          double step_;
          double trim_scope_;
          double ave_v_;
+         double dist_of_two_node_;
 
          double footprintCost(double x_i, double y_i, double theta_i);
          int informedRrtSearch();
@@ -80,9 +82,15 @@
          void worldToMap(double wx, double wy, int& mx, int& my);
          bool obstacleCheck(double wx, double wy);
          void extendTheTree(geometry_msgs::Pose2D point);
-         bool generateValidTreeNode(geometry_msgs::Pose2D point, vector<Node*> tree);
-         bool connectTwoNode(Node* node1, Node* Node2);
-         bool findPathCheck(vector<Node*> tree1, vector<Node*> tree2);
+         bool generateValidTreeNode(geometry_msgs::Pose2D point, vector<Node*>& tree);
+         bool connectTwoNode(Node* node1, Node* Node2, bool connect_flag);
+         bool findPathCheck(vector<Node*>& tree1, vector<Node*>& tree2);
+
+         ros::Publisher pub_tree_;
+         ros::Publisher pub_node_;
+         ros::Publisher pub_point_;
+         void displayTree();
+         void displayPoint(double x, double y);
      };
  };
  #endif
