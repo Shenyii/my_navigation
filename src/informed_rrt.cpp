@@ -117,7 +117,7 @@ namespace informed_rrt
         ////////////////////////////////
         for(int i = 0; i < 50; i++) {
             informedRrtSearch();
-            displayTree();
+            //displayTree();
         }
         ////////////////////////////////
 
@@ -187,14 +187,14 @@ namespace informed_rrt
         bool extend_start_tree = generateValidTreeNode(point, start_tree_);
         bool extend_goal_tree = generateValidTreeNode(point, goal_tree_);
         if(extend_start_tree && !extend_goal_tree) {
-            findPathCheck(start_tree_, goal_tree_);
+            //findPathCheck(start_tree_, goal_tree_);
         }
         else if(!extend_start_tree && extend_goal_tree) {
-            findPathCheck(goal_tree_, start_tree_);
+            //findPathCheck(goal_tree_, start_tree_);
         }
         else if(extend_start_tree && extend_goal_tree) {
-            findPathCheck(start_tree_, goal_tree_);
-            findPathCheck(goal_tree_, start_tree_);
+            //findPathCheck(start_tree_, goal_tree_);
+            //findPathCheck(goal_tree_, start_tree_);
         }
     }
 
@@ -234,6 +234,7 @@ namespace informed_rrt
                     connectTwoNode(tree[i], new_node, true);
                 }
             }
+            displayTree();
         }
         if(ans == true) {
             tree.push_back(new_node);
@@ -277,7 +278,7 @@ namespace informed_rrt
 
         double dist = 0;
         double last_x, last_y;
-        for(double t = 0.01; t < t_f; t+=0.01) {
+        for(double t = 0.0; t < t_f; t+=0.01) {
             double x, y;
             x = param_x(0, 0) + param_x(1, 0) * t + param_x(2, 0) * pow(t, 2) 
               + param_x(3, 0) * pow(t, 3) + param_x(4, 0) * pow(t, 4) + param_x(5, 0) * pow(t, 5);
@@ -286,7 +287,7 @@ namespace informed_rrt
             if(obstacleCheck(x, y) == 1) {
                 return false;
             }
-            if(t > 0.01) {
+            if(t > 0.0) {
                 dist += sqrt(pow(x - last_x, 2) + pow(y - last_y, 2));
             }
 
@@ -424,7 +425,7 @@ namespace informed_rrt
         }
         cout << "other tree." << endl;
         for(int i = 0; i < goal_tree_.size(); i++) {
-            cout << goal_tree_[i]->x_ << ", " << goal_tree_[i]->y_ << ", " << start_tree_[i]->dist_to_root_ << endl;
+            cout << goal_tree_[i]->x_ << ", " << goal_tree_[i]->y_ << ", " << goal_tree_[i]->dist_to_root_ << endl;
         }
 
         //getchar();
