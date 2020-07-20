@@ -40,6 +40,9 @@ namespace informed_rrt
             
             //world_model_ = new base_local_planner::CostmapModel(*costmap_); 
 
+            pub_path_ = private_nh.advertise<nav_msgs::Path>("/own_path", 2);
+            path_.header.frame_id = "map";
+
             pub_tree_ = private_nh.advertise<sensor_msgs::PointCloud>("/tree", 3);
             pub_node_ = private_nh.advertise<sensor_msgs::PointCloud>("/node", 3);
             pub_point_ = private_nh.advertise<sensor_msgs::PointCloud>("/point", 3);
@@ -112,13 +115,13 @@ namespace informed_rrt
         //     ros::Duration(1).sleep();
         // }
 
-        ros::Duration(1).sleep();
-
         ////////////////////////////////
-        for(int i = 0; i < 50; i++) {
+        for(int i = 0; i < 500; i++) {
             informedRrtSearch();
-            //displayTree();
+            displayTree();
         }
+        ros::Duration(1).sleep();
+        getchar();
         ////////////////////////////////
 
         for(int i = 0; i < start_tree_.size(); i++) {
@@ -130,6 +133,7 @@ namespace informed_rrt
         start_tree_.clear();
         goal_tree_.clear();
         cout << endl << endl;
+
     }
 
     int InformedRrt::informedRrtSearch() {
@@ -139,7 +143,16 @@ namespace informed_rrt
         if(path_.poses.size() == 0) {
             extendTheTree(rand_point);
         }
-        else {}
+        else {
+            double search_range = sqrt(pow(rand_point.x - start_tree_[0]->x_, 2) + pow(rand_point.y - start_tree_[0]->y_, 2)) + 
+                                  sqrt(pow(rand_point.x - goal_tree_[0]->x_, 2) + pow(rand_point.y - goal_tree_[0]->y_, 2));
+            while(search_range > getPathLength()) {
+                rand_point = generateRandPoint();
+                search_range = sqrt(pow(rand_point.x - start_tree_[0]->x_, 2) + pow(rand_point.y - start_tree_[0]->y_, 2)) + 
+                               sqrt(pow(rand_point.x - goal_tree_[0]->x_, 2) + pow(rand_point.y - goal_tree_[0]->y_, 2));
+            }
+            trimTheTree(rand_point);
+        }
         return ans;
     }
 
@@ -187,14 +200,33 @@ namespace informed_rrt
         bool extend_start_tree = generateValidTreeNode(point, start_tree_);
         bool extend_goal_tree = generateValidTreeNode(point, goal_tree_);
         if(extend_start_tree && !extend_goal_tree) {
-            //findPathCheck(start_tree_, goal_tree_);
+            if(findPathCheck(start_tree_, goal_tree_) == true) {
+                getTheInitPath();
+            }
         }
         else if(!extend_start_tree && extend_goal_tree) {
-            //findPathCheck(goal_tree_, start_tree_);
+            if(findPathCheck(goal_tree_, start_tree_) == true) {
+                getTheInitPath();
+            }
         }
         else if(extend_start_tree && extend_goal_tree) {
-            //findPathCheck(start_tree_, goal_tree_);
-            //findPathCheck(goal_tree_, start_tree_);
+            if(findPathCheck(start_tree_, goal_tree_) == true) {
+                getTheInitPath();
+            }
+            if(findPathCheck(goal_tree_, start_tree_) == true) {
+                getTheInitPath();
+            }
+        }
+    }
+
+    void InformedRrt::trimTheTree(geometry_msgs::Pose2D point) {
+        bool extend_start_tree = generateValidTreeNode(point, start_tree_);
+        bool extend_goal_tree = generateValidTreeNode(point, goal_tree_);
+        if(extend_start_tree && !extend_goal_tree) {
+        }
+        else if(!extend_start_tree && extend_goal_tree) {
+        }
+        else if(extend_start_tree && extend_goal_tree) {
         }
     }
 
@@ -234,7 +266,7 @@ namespace informed_rrt
                     connectTwoNode(tree[i], new_node, true);
                 }
             }
-            displayTree();
+            //displayTree();
         }
         if(ans == true) {
             tree.push_back(new_node);
@@ -312,14 +344,103 @@ namespace informed_rrt
         for(int i = 0; i < tree2.size(); i++) {
             if(pow(tree1[tree1.size() - 1]->x_ - tree2[i]->x_, 2) + pow(tree1[tree1.size() - 1]->y_ - tree2[i]->y_, 2) < trim_scope_ * trim_scope_) {
                 if(connectTwoNode(tree1[tree1.size() - 1], tree2[i], false) == true) {
-                    if(tree1[tree1.size() - 1]->dist_of_path_ > tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_of_path_) {
-                        tree1[tree1.size() - 1]->dist_of_path_ = tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_of_path_;
+                    if(tree1[tree1.size() - 1]->dist_of_path_ > tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_) {
+                        tree1[tree1.size() - 1]->dist_of_path_ = tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_;
                         tree1[tree1.size() - 1]->joint_node_ = tree2[i];
+                        ans = true;
+                        joint_node_ = tree1[tree1.size() - 1];
                     }
                 }
             }
         }
         return ans;
+    }
+
+    void InformedRrt::getTheInitPath() {
+        Node* interim_node = joint_node_;
+        vector<Node*> part_of_path0;
+        vector<Node*> part_of_path1;
+
+        part_of_path0.push_back(joint_node_);
+        while(interim_node->father_node_ != NULL) {
+            part_of_path0.push_back(interim_node->father_node_);
+            interim_node = interim_node->father_node_;
+        }
+
+        part_of_path1.push_back(joint_node_->joint_node_);
+        while(part_of_path1[part_of_path1.size() - 1]->father_node_ != NULL) {
+            part_of_path1.push_back(part_of_path1[part_of_path1.size() - 1]->father_node_);
+        }
+
+        path_.poses.clear();
+        if(fabs(part_of_path0[part_of_path0.size() - 1]->x_ - start_tree_[0]->x_) + fabs(part_of_path0[part_of_path0.size() - 1]->y_ - start_tree_[0]->y_) <
+           fabs(part_of_path0[part_of_path0.size() - 1]->x_ - goal_tree_[0]->x_) + fabs(part_of_path0[part_of_path0.size() - 1]->y_ - goal_tree_[0]->y_)) {
+            reverse(part_of_path0.begin(), part_of_path0.end());
+            for(int i = 0; i < part_of_path0.size(); i++) {
+                geometry_msgs::PoseStamped pose;
+                pose.header.frame_id = "map";
+                pose.pose.position.x = part_of_path0[i]->x_;
+                pose.pose.position.y = part_of_path0[i]->y_;
+                pose.pose.position.z = 0.1;
+                pose.pose.orientation.w = cos(part_of_path0[i]->theta_ / 2);
+                pose.pose.orientation.z = sin(part_of_path0[i]->theta_ / 2);
+                path_.poses.push_back(pose);
+            }
+            for(int i = 0; i < part_of_path1.size(); i++) {
+                geometry_msgs::PoseStamped pose;
+                pose.header.frame_id = "map";
+                pose.pose.position.x = part_of_path1[i]->x_;
+                pose.pose.position.y = part_of_path1[i]->y_;
+                pose.pose.position.z = 0.1;
+                pose.pose.orientation.w = cos(part_of_path1[i]->theta_ / 2);
+                pose.pose.orientation.z = sin(part_of_path1[i]->theta_ / 2);
+                path_.poses.push_back(pose);
+            }
+        }
+        else {
+            reverse(part_of_path1.begin(), part_of_path1.end());
+            for(int i = 0; i < part_of_path1.size(); i++) {
+                geometry_msgs::PoseStamped pose;
+                pose.header.frame_id = "map";
+                pose.pose.position.x = part_of_path1[i]->x_;
+                pose.pose.position.y = part_of_path1[i]->y_;
+                pose.pose.position.z = 0.1;
+                pose.pose.orientation.w = cos(part_of_path1[i]->theta_ / 2);
+                pose.pose.orientation.z = sin(part_of_path1[i]->theta_ / 2);
+                path_.poses.push_back(pose);
+            }
+            for(int i = 0; i < part_of_path0.size(); i++) {
+                geometry_msgs::PoseStamped pose;
+                pose.header.frame_id = "map";
+                pose.pose.position.x = part_of_path0[i]->x_;
+                pose.pose.position.y = part_of_path0[i]->y_;
+                pose.pose.position.z = 0.1;
+                pose.pose.orientation.w = cos(part_of_path0[i]->theta_ / 2);
+                pose.pose.orientation.z = sin(part_of_path0[i]->theta_ / 2);
+                path_.poses.push_back(pose);
+            }
+        }
+        pub_path_.publish(path_);
+
+        /////////////////////////////
+        double dist = 0;
+        for(int i = 1; i < path_.poses.size(); i++) {
+            double dx = path_.poses[i].pose.position.x - path_.poses[i - 1].pose.position.x;
+            double dy = path_.poses[i].pose.position.y - path_.poses[i - 1].pose.position.y;
+            dist += sqrt(pow(dx, 2) + pow(dy, 2));
+        }
+        cout << "the distance of path may is: " << dist << ", " << joint_node_->dist_of_path_ << endl;
+        /////////////////////////////
+    }
+
+    double InformedRrt::getPathLength() {
+        double dist = 0;
+        for(int i = 1; i < path_.poses.size(); i++) {
+            double dx = path_.poses[i].pose.position.x - path_.poses[i - 1].pose.position.x;
+            double dy = path_.poses[i].pose.position.y - path_.poses[i - 1].pose.position.y;
+            dist += sqrt(pow(dx, 2) + pow(dy, 2));
+        }
+        return dist;
     }
 
     void InformedRrt::displayTree() {
@@ -419,14 +540,14 @@ namespace informed_rrt
         }
         pub_tree_.publish(tree);
         pub_node_.publish(node);
-        cout << "the scale of trees: " <<  start_tree_.size() << ", " << goal_tree_.size() << endl;
-        for(int i = 0; i < start_tree_.size(); i++) {
-            cout << start_tree_[i]->x_ << ", " << start_tree_[i]->y_ << ", " << start_tree_[i]->dist_to_root_ << endl;
-        }
-        cout << "other tree." << endl;
-        for(int i = 0; i < goal_tree_.size(); i++) {
-            cout << goal_tree_[i]->x_ << ", " << goal_tree_[i]->y_ << ", " << goal_tree_[i]->dist_to_root_ << endl;
-        }
+        // cout << "the scale of trees: " <<  start_tree_.size() << ", " << goal_tree_.size() << endl;
+        // for(int i = 0; i < start_tree_.size(); i++) {
+        //     cout << start_tree_[i]->x_ << ", " << start_tree_[i]->y_ << ", " << start_tree_[i]->dist_to_root_ << endl;
+        // }
+        // cout << "other tree." << endl;
+        // for(int i = 0; i < goal_tree_.size(); i++) {
+        //     cout << goal_tree_[i]->x_ << ", " << goal_tree_[i]->y_ << ", " << goal_tree_[i]->dist_to_root_ << endl;
+        // }
 
         //getchar();
     }

@@ -50,7 +50,6 @@
      private:
          bool initialized_;
 
-         ros::Publisher pub_path_;
          costmap_2d::Costmap2DROS* costmap_ros_;
          double step_size_, min_dist_from_robot_;
          costmap_2d::Costmap2D* costmap_;
@@ -67,8 +66,10 @@
          geometry_msgs::Pose2D start_pose_;
          geometry_msgs::Pose2D goal_;
          vector<Node*> start_tree_;
+         Node* joint_node_;
          vector<Node*> goal_tree_;
          nav_msgs::Path path_;
+         ros::Publisher pub_path_;
          int pose_valid_threshold_;
          double step_;
          double trim_scope_;
@@ -85,6 +86,9 @@
          bool generateValidTreeNode(geometry_msgs::Pose2D point, vector<Node*>& tree);
          bool connectTwoNode(Node* node1, Node* Node2, bool connect_flag);
          bool findPathCheck(vector<Node*>& tree1, vector<Node*>& tree2);
+         void getTheInitPath();
+         double getPathLength();
+         void trimTheTree(geometry_msgs::Pose2D point);
 
          ros::Publisher pub_tree_;
          ros::Publisher pub_node_;
