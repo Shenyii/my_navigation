@@ -94,6 +94,7 @@
          ros::Publisher pub_tree_;
          ros::Publisher pub_node_;
          ros::Publisher pub_point_;
+         ros::Publisher pub_path_2_;
          void displayTree();
          void displayPoint(double x, double y);
      };

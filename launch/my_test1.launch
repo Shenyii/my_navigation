@@ -3,7 +3,7 @@
 
     <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch"/>
 
-    <node pkg="path_track" type="dwa_path_track2" name="dwa_path_track2" output="screen"/>
+    <node pkg="path_track" type="dwa_path_track2" name="dwa_path_track2"/>
 
     <node pkg="rviz" type="rviz" name="rviz" output="screen"/>
 

@@ -31,7 +31,7 @@ namespace informed_rrt
             pub_path_ = private_nh.advertise<nav_msgs::Path>("/own_path", 1);
             sub_ref_map_ = private_nh.subscribe("/move_base/global_costmap/costmap",1,&InformedRrt::subRefMap,this);
             sub_ori_map_ = private_nh.subscribe("/map",1,&InformedRrt::subOriMap,this);
-            pose_valid_threshold_ = 90;
+            pose_valid_threshold_ = 70;
             step_ = 0.15;
             trim_scope_ = 0.5;
             ave_v_ = 1.0;
@@ -46,6 +46,7 @@ namespace informed_rrt
             pub_tree_ = private_nh.advertise<sensor_msgs::PointCloud>("/tree", 3);
             pub_node_ = private_nh.advertise<sensor_msgs::PointCloud>("/node", 3);
             pub_point_ = private_nh.advertise<sensor_msgs::PointCloud>("/point", 3);
+            pub_path_2_ = private_nh.advertise<nav_msgs::Path>("/own_path_2", 1);
 
             initialized_ = true;
 
@@ -117,14 +118,17 @@ namespace informed_rrt
 
         ////////////////////////////////
         while(ros::ok()) {
-            start_tree_.push_back(new Node(-2, 0, 0));
-            goal_tree_.push_back(new Node(1, 2, PI / 2));
+            // start_tree_.push_back(new Node(-2, 0, 0));
+            // goal_tree_.push_back(new Node(1, 2, PI / 2));
+            start_tree_.push_back(new Node(start_pose_.x, start_pose_.y, start_pose_.theta));
+            goal_tree_.push_back(new Node(goal_.x, goal_.y, goal_.theta));
             start_tree_[0]->dist_to_root_ = 0;
             goal_tree_[0]->dist_to_root_ = 0;
-            for(int i = 0; i < 200; i++) {
+            for(int i = 0; i < 500; i++) {
                 informedRrtSearch();
                 displayTree();
             }
+            pub_path_.publish(path_);
             ros::Duration(1).sleep();
             getchar();
             for(int i = 0; i < start_tree_.size(); i++) {
@@ -240,17 +244,54 @@ namespace informed_rrt
 
     void InformedRrt::trimTheTree(geometry_msgs::Pose2D point) {
         bool extend_start_tree = generateValidTreeNode(point, start_tree_);
-        bool extend_goal_tree = generateValidTreeNode2(point, goal_tree_);
+        bool extend_goal_tree = generateValidTreeNode(point, goal_tree_);
         if(extend_start_tree && !extend_goal_tree) {
-            // for(int i = 0; i < start_tree_.size(); i++) {
-            //     if(connectTwoNode(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
-            //         getTheInitPath();
-            //     }
-            // }
+            for(int i = 0; i < start_tree_.size(); i++) {
+                double dx = start_tree_[start_tree_.size() - 1]->x_ - start_tree_[i]->x_;
+                double dy = start_tree_[start_tree_.size() - 1]->y_ - start_tree_[i]->y_;
+                if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
+                    continue;
+                }
+                if(connectTwoNode(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
+                    getTheInitPath();
+                }
+            }
         }
         else if(!extend_start_tree && extend_goal_tree) {
+            for(int i = 0; i < goal_tree_.size(); i++) {
+                double dx = goal_tree_[goal_tree_.size() - 1]->x_ - goal_tree_[i]->x_;
+                double dy = goal_tree_[goal_tree_.size() - 1]->y_ - goal_tree_[i]->y_;
+                if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
+                    continue;
+                }
+                if(connectTwoNode(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
+                    getTheInitPath();
+                    //getchar();
+                }
+            }
         }
         else if(extend_start_tree && extend_goal_tree) {
+            for(int i = 0; i < start_tree_.size(); i++) {
+                double dx = start_tree_[start_tree_.size() - 1]->x_ - start_tree_[i]->x_;
+                double dy = start_tree_[start_tree_.size() - 1]->y_ - start_tree_[i]->y_;
+                if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
+                    continue;
+                }
+                if(connectTwoNode(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
+                    getTheInitPath();
+                }
+            }
+            for(int i = 0; i < goal_tree_.size(); i++) {
+                double dx = goal_tree_[goal_tree_.size() - 1]->x_ - goal_tree_[i]->x_;
+                double dy = goal_tree_[goal_tree_.size() - 1]->y_ - goal_tree_[i]->y_;
+                if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
+                    continue;
+                }
+                if(connectTwoNode(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
+                    getTheInitPath();
+                    //getchar();
+                }
+            }
         }
     }
 
@@ -329,11 +370,12 @@ namespace informed_rrt
             theta = theta - PI;
         }
         
+        ////////////////////////////////
         x = -0.6;
         y = 0.6;
         theta = -PI;
+        ////////////////////////////////
         new_node = new Node(x, y, theta);
-        getchar();
 
         for(int i = 0; i < tree.size(); i++) {
             if(pow(x - tree[i]->x_, 2) + pow(y - tree[i]->y_, 2) < pow(trim_scope_, 2)) {
@@ -436,6 +478,10 @@ namespace informed_rrt
     }
 
     void InformedRrt::getTheInitPath() {
+        if(joint_node_ == NULL) {
+            return;
+        }
+
         Node* interim_node = joint_node_;
         vector<Node*> part_of_path0;
         vector<Node*> part_of_path1;
@@ -499,8 +545,8 @@ namespace informed_rrt
                 path_.poses.push_back(pose);
             }
         }
-        pub_path_.publish(path_);
-        cout << "display the path." << endl;
+        pub_path_2_.publish(path_);
+        //cout << "display the path." << endl;
 
         /////////////////////////////
         double dist = 0;
