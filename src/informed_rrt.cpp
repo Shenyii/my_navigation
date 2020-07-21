@@ -33,7 +33,7 @@ namespace informed_rrt
             sub_ori_map_ = private_nh.subscribe("/map",1,&InformedRrt::subOriMap,this);
             pose_valid_threshold_ = 90;
             step_ = 0.15;
-            trim_scope_ = 0.2;
+            trim_scope_ = 0.5;
             ave_v_ = 1.0;
             private_nh.param("step_size", step_size_, costmap_->getResolution());
             private_nh.param("min_dist_from_robot", min_dist_from_robot_, 0.10);
@@ -95,10 +95,10 @@ namespace informed_rrt
         goal_.theta = goal.pose.orientation.w * goal.pose.orientation.z < 0 ? -goal_.theta : goal_.theta;
         cout << "start: " << start_pose_.x << ", " << start_pose_.y << ", " << start_pose_.theta << endl;
         cout << " goal: " << goal_.x << ", " << goal_.y << ", " << goal_.theta << endl;
-        start_tree_.push_back(new Node(start_pose_.x, start_pose_.y, start_pose_.theta));
-        goal_tree_.push_back(new Node(goal_.x, goal_.y, goal_.theta));
-        start_tree_[0]->dist_to_root_ = 0;
-        goal_tree_[0]->dist_to_root_ = 0;
+        // start_tree_.push_back(new Node(start_pose_.x, start_pose_.y, start_pose_.theta));
+        // goal_tree_.push_back(new Node(goal_.x, goal_.y, goal_.theta));
+        // start_tree_[0]->dist_to_root_ = 0;
+        // goal_tree_[0]->dist_to_root_ = 0;
 
         // while(ros::ok()) {
         //     int stop_flag = informedRrtSearch();
@@ -116,12 +116,30 @@ namespace informed_rrt
         // }
 
         ////////////////////////////////
-        for(int i = 0; i < 500; i++) {
-            informedRrtSearch();
-            displayTree();
+        while(ros::ok()) {
+            start_tree_.push_back(new Node(-2, 0, 0));
+            goal_tree_.push_back(new Node(1, 2, PI / 2));
+            start_tree_[0]->dist_to_root_ = 0;
+            goal_tree_[0]->dist_to_root_ = 0;
+            for(int i = 0; i < 200; i++) {
+                informedRrtSearch();
+                displayTree();
+            }
+            ros::Duration(1).sleep();
+            getchar();
+            for(int i = 0; i < start_tree_.size(); i++) {
+                delete start_tree_[i];
+            }
+            for(int i = 0; i < goal_tree_.size(); i++) {
+                delete goal_tree_[i];
+            }
+            //delete joint_node_;
+            start_tree_.clear();
+            goal_tree_.clear();
+            path_.poses.clear();
+            
+            cout << endl << endl;
         }
-        ros::Duration(1).sleep();
-        getchar();
         ////////////////////////////////
 
         for(int i = 0; i < start_tree_.size(); i++) {
@@ -130,10 +148,10 @@ namespace informed_rrt
         for(int i = 0; i < goal_tree_.size(); i++) {
             delete goal_tree_[i];
         }
+        //delete joint_node_;
         start_tree_.clear();
         goal_tree_.clear();
-        cout << endl << endl;
-
+        path_.poses.clear();
     }
 
     int InformedRrt::informedRrtSearch() {
@@ -148,6 +166,7 @@ namespace informed_rrt
                                   sqrt(pow(rand_point.x - goal_tree_[0]->x_, 2) + pow(rand_point.y - goal_tree_[0]->y_, 2));
             while(search_range > getPathLength()) {
                 rand_point = generateRandPoint();
+                //displayPoint(rand_point.x, rand_point.y);
                 search_range = sqrt(pow(rand_point.x - start_tree_[0]->x_, 2) + pow(rand_point.y - start_tree_[0]->y_, 2)) + 
                                sqrt(pow(rand_point.x - goal_tree_[0]->x_, 2) + pow(rand_point.y - goal_tree_[0]->y_, 2));
             }
@@ -221,8 +240,13 @@ namespace informed_rrt
 
     void InformedRrt::trimTheTree(geometry_msgs::Pose2D point) {
         bool extend_start_tree = generateValidTreeNode(point, start_tree_);
-        bool extend_goal_tree = generateValidTreeNode(point, goal_tree_);
+        bool extend_goal_tree = generateValidTreeNode2(point, goal_tree_);
         if(extend_start_tree && !extend_goal_tree) {
+            // for(int i = 0; i < start_tree_.size(); i++) {
+            //     if(connectTwoNode(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
+            //         getTheInitPath();
+            //     }
+            // }
         }
         else if(!extend_start_tree && extend_goal_tree) {
         }
@@ -239,6 +263,7 @@ namespace informed_rrt
             double dist = pow(point.x - tree[i]->x_, 2) + pow(point.y - tree[i]->y_, 2);
             if(min_d > dist) {
                 index = i;
+                min_d = dist;
             }
         }
         double x, y, theta;
@@ -270,6 +295,60 @@ namespace informed_rrt
         }
         if(ans == true) {
             tree.push_back(new_node);
+            //cout << "extend the tree." << endl;
+        }
+        else {
+            delete new_node;
+        }
+        return ans;
+    }
+
+    bool InformedRrt::generateValidTreeNode2(geometry_msgs::Pose2D point, vector<Node*>& tree) {
+        bool ans = false;
+        Node* new_node;
+        double min_d = 99999;
+        int index = 0;
+        for(int i = 0; i < tree.size(); i++) {
+            double dist = pow(point.x - tree[i]->x_, 2) + pow(point.y - tree[i]->y_, 2);
+            if(min_d > dist) {
+                index = i;
+                min_d = dist;
+            }
+        }
+        double x, y, theta;
+        x = tree[index]->x_ + step_ / sqrt(pow(tree[index]->x_ - point.x, 2) + pow(tree[index]->y_ - point.y, 2)) * (point.x - tree[index]->x_);
+        y = tree[index]->y_ + step_ / sqrt(pow(tree[index]->x_ - point.x, 2) + pow(tree[index]->y_ - point.y, 2)) * (point.y - tree[index]->y_);
+        if(obstacleCheck(x, y) == 1) {
+            return false;
+        }
+        theta = atan((point.y - tree[index]->y_) / (point.x - tree[index]->x_));
+        if((point.y - tree[index]->y_ > 0) && (point.x - tree[index]->x_ < 0)) {
+            theta = theta + PI;
+        }
+        else if((point.y - tree[index]->y_ < 0) && (point.x - tree[index]->x_ < 0)) {
+            theta = theta - PI;
+        }
+        
+        x = -0.6;
+        y = 0.6;
+        theta = -PI;
+        new_node = new Node(x, y, theta);
+        getchar();
+
+        for(int i = 0; i < tree.size(); i++) {
+            if(pow(x - tree[i]->x_, 2) + pow(y - tree[i]->y_, 2) < pow(trim_scope_, 2)) {
+                if(ans == false) {
+                    ans = connectTwoNode(tree[i], new_node, true);
+                }
+                else {
+                    connectTwoNode(tree[i], new_node, true);
+                }
+            }
+            //displayTree();
+        }
+        if(ans == true) {
+            tree.push_back(new_node);
+            //cout << "extend the tree." << endl;
         }
         else {
             delete new_node;
@@ -421,6 +500,7 @@ namespace informed_rrt
             }
         }
         pub_path_.publish(path_);
+        cout << "display the path." << endl;
 
         /////////////////////////////
         double dist = 0;
@@ -444,6 +524,7 @@ namespace informed_rrt
     }
 
     void InformedRrt::displayTree() {
+        //cout << "display the rrt tree." << endl;
         sensor_msgs::PointCloud tree;
         tree.header.frame_id = "map";
         sensor_msgs::PointCloud node;
