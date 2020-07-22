@@ -126,7 +126,7 @@ namespace informed_rrt
             goal_tree_[0]->dist_to_root_ = 0;
             for(int i = 0; i < 500; i++) {
                 informedRrtSearch();
-                displayTree();
+                displayTree2();
             }
             pub_path_.publish(path_);
             ros::Duration(1).sleep();
@@ -252,7 +252,7 @@ namespace informed_rrt
                 if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
                     continue;
                 }
-                if(connectTwoNode(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
+                if(connectTwoNode2(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
                     getTheInitPath();
                 }
             }
@@ -264,7 +264,7 @@ namespace informed_rrt
                 if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
                     continue;
                 }
-                if(connectTwoNode(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
+                if(connectTwoNode2(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
                     getTheInitPath();
                     //getchar();
                 }
@@ -277,7 +277,7 @@ namespace informed_rrt
                 if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
                     continue;
                 }
-                if(connectTwoNode(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
+                if(connectTwoNode2(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
                     getTheInitPath();
                 }
             }
@@ -287,7 +287,7 @@ namespace informed_rrt
                 if(pow(dx, 2) + pow(dy, 2) > trim_scope_ * trim_scope_) {
                     continue;
                 }
-                if(connectTwoNode(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
+                if(connectTwoNode2(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
                     getTheInitPath();
                     //getchar();
                 }
@@ -326,67 +326,13 @@ namespace informed_rrt
         for(int i = 0; i < tree.size(); i++) {
             if(pow(x - tree[i]->x_, 2) + pow(y - tree[i]->y_, 2) < pow(trim_scope_, 2)) {
                 if(ans == false) {
-                    ans = connectTwoNode(tree[i], new_node, true);
+                    ans = connectTwoNode2(tree[i], new_node, true);
                 }
                 else {
-                    connectTwoNode(tree[i], new_node, true);
+                    connectTwoNode2(tree[i], new_node, true);
                 }
             }
-            //displayTree();
-        }
-        if(ans == true) {
-            tree.push_back(new_node);
-            //cout << "extend the tree." << endl;
-        }
-        else {
-            delete new_node;
-        }
-        return ans;
-    }
-
-    bool InformedRrt::generateValidTreeNode2(geometry_msgs::Pose2D point, vector<Node*>& tree) {
-        bool ans = false;
-        Node* new_node;
-        double min_d = 99999;
-        int index = 0;
-        for(int i = 0; i < tree.size(); i++) {
-            double dist = pow(point.x - tree[i]->x_, 2) + pow(point.y - tree[i]->y_, 2);
-            if(min_d > dist) {
-                index = i;
-                min_d = dist;
-            }
-        }
-        double x, y, theta;
-        x = tree[index]->x_ + step_ / sqrt(pow(tree[index]->x_ - point.x, 2) + pow(tree[index]->y_ - point.y, 2)) * (point.x - tree[index]->x_);
-        y = tree[index]->y_ + step_ / sqrt(pow(tree[index]->x_ - point.x, 2) + pow(tree[index]->y_ - point.y, 2)) * (point.y - tree[index]->y_);
-        if(obstacleCheck(x, y) == 1) {
-            return false;
-        }
-        theta = atan((point.y - tree[index]->y_) / (point.x - tree[index]->x_));
-        if((point.y - tree[index]->y_ > 0) && (point.x - tree[index]->x_ < 0)) {
-            theta = theta + PI;
-        }
-        else if((point.y - tree[index]->y_ < 0) && (point.x - tree[index]->x_ < 0)) {
-            theta = theta - PI;
-        }
-        
-        ////////////////////////////////
-        x = -0.6;
-        y = 0.6;
-        theta = -PI;
-        ////////////////////////////////
-        new_node = new Node(x, y, theta);
-
-        for(int i = 0; i < tree.size(); i++) {
-            if(pow(x - tree[i]->x_, 2) + pow(y - tree[i]->y_, 2) < pow(trim_scope_, 2)) {
-                if(ans == false) {
-                    ans = connectTwoNode(tree[i], new_node, true);
-                }
-                else {
-                    connectTwoNode(tree[i], new_node, true);
-                }
-            }
-            //displayTree();
+            //displayTree2();
         }
         if(ans == true) {
             tree.push_back(new_node);
@@ -455,7 +401,33 @@ namespace informed_rrt
             }
         }
 
-        //displayTree();
+        //displayTree2();
+
+        return true;
+    }
+
+    bool InformedRrt::connectTwoNode2(Node* node1, Node* node2, bool connect_flag) {
+        bool ans = false;
+        double dist = sqrt(pow(node1->x_ - node2->x_, 2) + pow(node1->y_ - node2->y_, 2));
+        double dx = ref_map_.info.resolution / dist * (node2->x_ - node1->x_);
+        double dy = ref_map_.info.resolution / dist * (node2->y_ - node1->y_);
+        for(int i = 0.0; i < dist / ref_map_.info.resolution; i++) {
+            double x, y;
+            x = node1->x_ + dx * (i + 1);
+            y = node1->y_ + dy * (i + 1);
+            if(obstacleCheck(x, y) == 1) {
+                return false;
+            }
+        }
+        dist_of_two_node_ = dist;
+        if(connect_flag == true) {
+            if(node2->dist_to_root_ > node1->dist_to_root_ + dist) {
+                node2->dist_to_root_ = node1->dist_to_root_ + dist;
+                node2->father_node_ = node1;
+            }
+        }
+
+        //displayTree2();
 
         return true;
     }
@@ -464,7 +436,7 @@ namespace informed_rrt
         bool ans = false;
         for(int i = 0; i < tree2.size(); i++) {
             if(pow(tree1[tree1.size() - 1]->x_ - tree2[i]->x_, 2) + pow(tree1[tree1.size() - 1]->y_ - tree2[i]->y_, 2) < trim_scope_ * trim_scope_) {
-                if(connectTwoNode(tree1[tree1.size() - 1], tree2[i], false) == true) {
+                if(connectTwoNode2(tree1[tree1.size() - 1], tree2[i], false) == true) {
                     if(tree1[tree1.size() - 1]->dist_of_path_ > tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_) {
                         tree1[tree1.size() - 1]->dist_of_path_ = tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_;
                         tree1[tree1.size() - 1]->joint_node_ = tree2[i];
@@ -657,6 +629,62 @@ namespace informed_rrt
                             + param_x(3, 0) * pow(t, 3) + param_x(4, 0) * pow(t, 4) + param_x(5, 0) * pow(t, 5);
                 one_point.y = param_y(0, 0) + param_y(1, 0) * t + param_y(2, 0) * pow(t, 2) 
                             + param_y(3, 0) * pow(t, 3) + param_y(4, 0) * pow(t, 4) + param_y(5, 0) * pow(t, 5);
+                one_point.z = 0.1;
+                tree.points.push_back(one_point);
+            }
+            one_point.x = goal_tree_[i]->x_;
+            one_point.y = goal_tree_[i]->y_;
+            one_point.z = 0.1;
+            node.points.push_back(one_point);
+        }
+        pub_tree_.publish(tree);
+        pub_node_.publish(node);
+        // cout << "the scale of trees: " <<  start_tree_.size() << ", " << goal_tree_.size() << endl;
+        // for(int i = 0; i < start_tree_.size(); i++) {
+        //     cout << start_tree_[i]->x_ << ", " << start_tree_[i]->y_ << ", " << start_tree_[i]->dist_to_root_ << endl;
+        // }
+        // cout << "other tree." << endl;
+        // for(int i = 0; i < goal_tree_.size(); i++) {
+        //     cout << goal_tree_[i]->x_ << ", " << goal_tree_[i]->y_ << ", " << goal_tree_[i]->dist_to_root_ << endl;
+        // }
+
+        //getchar();
+    }
+
+    void InformedRrt::displayTree2() {
+        //cout << "display the rrt tree." << endl;
+        sensor_msgs::PointCloud tree;
+        tree.header.frame_id = "map";
+        sensor_msgs::PointCloud node;
+        node.header.frame_id = "map";
+
+        for(int i = 1; i < start_tree_.size(); i++) {
+            geometry_msgs::Point32 one_point;
+            double dist = sqrt(pow(start_tree_[i]->x_ - start_tree_[i]->father_node_->x_, 2) + pow(start_tree_[i]->y_ - start_tree_[i]->father_node_->y_, 2));
+            double dx = ref_map_.info.resolution / 5 / dist * (start_tree_[i]->x_ - start_tree_[i]->father_node_->x_);
+            double dy = ref_map_.info.resolution / 5 / dist * (start_tree_[i]->y_ - start_tree_[i]->father_node_->y_);
+            for(int j = 0; j < dist * 5 / ref_map_.info.resolution; j++) {
+                double x, y;
+                one_point.x = start_tree_[i]->father_node_->x_ + dx * (j + 1);
+                one_point.y = start_tree_[i]->father_node_->y_ + dy * (j + 1);
+                one_point.z = 0.1;
+                tree.points.push_back(one_point);
+            }
+            one_point.x = start_tree_[i]->x_;
+            one_point.y = start_tree_[i]->y_;
+            one_point.z = 0.1;
+            node.points.push_back(one_point);
+        }
+
+        for(int i = 1; i < goal_tree_.size(); i++) {
+            geometry_msgs::Point32 one_point;
+            double dist = sqrt(pow(goal_tree_[i]->x_ - goal_tree_[i]->father_node_->x_, 2) + pow(goal_tree_[i]->y_ - goal_tree_[i]->father_node_->y_, 2));
+            double dx = ref_map_.info.resolution / 5 / dist * (goal_tree_[i]->x_ - goal_tree_[i]->father_node_->x_);
+            double dy = ref_map_.info.resolution / 5 / dist * (goal_tree_[i]->y_ - goal_tree_[i]->father_node_->y_);
+            for(int j = 0; j < dist * 5 / ref_map_.info.resolution; j++) {
+                double x, y;
+                one_point.x = goal_tree_[i]->father_node_->x_ + dx * (j + 1);
+                one_point.y = goal_tree_[i]->father_node_->y_ + dy * (j + 1);
                 one_point.z = 0.1;
                 tree.points.push_back(one_point);
             }

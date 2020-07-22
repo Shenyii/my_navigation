@@ -84,8 +84,8 @@
          bool obstacleCheck(double wx, double wy);
          void extendTheTree(geometry_msgs::Pose2D point);
          bool generateValidTreeNode(geometry_msgs::Pose2D point, vector<Node*>& tree);
-         bool generateValidTreeNode2(geometry_msgs::Pose2D point, vector<Node*>& tree);
          bool connectTwoNode(Node* node1, Node* Node2, bool connect_flag);
+         bool connectTwoNode2(Node* node1, Node* Node2, bool connect_flag);
          bool findPathCheck(vector<Node*>& tree1, vector<Node*>& tree2);
          void getTheInitPath();
          double getPathLength();
@@ -96,6 +96,7 @@
          ros::Publisher pub_point_;
          ros::Publisher pub_path_2_;
          void displayTree();
+         void displayTree2();
          void displayPoint(double x, double y);
      };
  };
