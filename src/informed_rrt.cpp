@@ -170,7 +170,6 @@ namespace informed_rrt
                                   sqrt(pow(rand_point.x - goal_tree_[0]->x_, 2) + pow(rand_point.y - goal_tree_[0]->y_, 2));
             while(search_range > getPathLength()) {
                 rand_point = generateRandPoint();
-                //displayPoint(rand_point.x, rand_point.y);
                 search_range = sqrt(pow(rand_point.x - start_tree_[0]->x_, 2) + pow(rand_point.y - start_tree_[0]->y_, 2)) + 
                                sqrt(pow(rand_point.x - goal_tree_[0]->x_, 2) + pow(rand_point.y - goal_tree_[0]->y_, 2));
             }
@@ -223,22 +222,23 @@ namespace informed_rrt
         bool extend_start_tree = generateValidTreeNode(point, start_tree_);
         bool extend_goal_tree = generateValidTreeNode(point, goal_tree_);
         if(extend_start_tree && !extend_goal_tree) {
-            if(findPathCheck(start_tree_, goal_tree_) == true) {
-                getTheInitPath();
+            if(findPathCheck2(start_tree_, goal_tree_) == true) {
+                cout << "test2" << ", " << start_tree_[start_tree_.size() - 1]->x_ << ", " << start_tree_[start_tree_.size() - 1]->y_ << ", " << start_tree_[start_tree_.size() - 1]->goal_flag_ << endl;
+                getTheInitPath2();
             }
         }
         else if(!extend_start_tree && extend_goal_tree) {
-            if(findPathCheck(goal_tree_, start_tree_) == true) {
-                getTheInitPath();
-            }
+            // if(findPathCheck2(goal_tree_, start_tree_) == true) {
+            //     getTheInitPath2();
+            // }
         }
         else if(extend_start_tree && extend_goal_tree) {
-            if(findPathCheck(start_tree_, goal_tree_) == true) {
-                getTheInitPath();
+            if(findPathCheck2(start_tree_, goal_tree_) == true) {
+                getTheInitPath2();
             }
-            if(findPathCheck(goal_tree_, start_tree_) == true) {
-                getTheInitPath();
-            }
+            // if(findPathCheck2(goal_tree_, start_tree_) == true) {
+            //     getTheInitPath2();
+            // }
         }
     }
 
@@ -253,7 +253,7 @@ namespace informed_rrt
                     continue;
                 }
                 if(connectTwoNode2(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
-                    getTheInitPath();
+                    getTheInitPath2();
                 }
             }
         }
@@ -265,7 +265,7 @@ namespace informed_rrt
                     continue;
                 }
                 if(connectTwoNode2(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
-                    getTheInitPath();
+                    //getTheInitPath2();
                     //getchar();
                 }
             }
@@ -278,7 +278,7 @@ namespace informed_rrt
                     continue;
                 }
                 if(connectTwoNode2(start_tree_[start_tree_.size() - 1], start_tree_[i], true)) {
-                    getTheInitPath();
+                    getTheInitPath2();
                 }
             }
             for(int i = 0; i < goal_tree_.size(); i++) {
@@ -288,7 +288,7 @@ namespace informed_rrt
                     continue;
                 }
                 if(connectTwoNode2(goal_tree_[goal_tree_.size() - 1], goal_tree_[i], true)) {
-                    getTheInitPath();
+                    //getTheInitPath2();
                     //getchar();
                 }
             }
@@ -449,6 +449,49 @@ namespace informed_rrt
         return ans;
     }
 
+    bool InformedRrt::findPathCheck2(vector<Node*>& tree1, vector<Node*>& tree2) {
+        bool ans = false;
+        double max_d = 99999;
+        int index;
+        for(int i = 0; i < tree2.size(); i++) {
+            if(pow(tree1[tree1.size() - 1]->x_ - tree2[i]->x_, 2) + pow(tree1[tree1.size() - 1]->y_ - tree2[i]->y_, 2) < trim_scope_ * trim_scope_) {
+                if(connectTwoNode2(tree1[tree1.size() - 1], tree2[i], false) == true) {
+                    if(tree1[tree1.size() - 1]->dist_of_path_ > tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_) {
+                        tree1[tree1.size() - 1]->dist_of_path_ = tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_;
+                        tree1[tree1.size() - 1]->joint_node_ = tree2[i];
+                        
+                        joint_node_ = tree1[tree1.size() - 1];
+                        max_d = tree1[tree1.size() - 1]->dist_to_root_ + dist_of_two_node_ + tree2[i]->dist_to_root_;
+                        index = i;
+
+                        ans = true;
+                    }
+                }
+            }
+        }
+
+        if(ans == true) {
+            Node* new_node = new Node(tree2[index]->x_, tree2[index]->y_, tree2[index]->theta_);
+            new_node->father_node_ = tree1[tree1.size() - 1];
+            tree1.push_back(new_node);
+            double dx = tree1[tree1.size() - 1]->x_ - tree1[tree1.size() - 2]->x_;
+            double dy = tree1[tree1.size() - 1]->y_ - tree1[tree1.size() - 2]->y_;
+            tree1[tree1.size() - 1]->dist_to_root_ = tree1[tree1.size() - 2]->dist_to_root_ + sqrt(pow(dx, 2) + pow(dy, 2));
+            new_node = tree2[index];
+            while(new_node->father_node_ != NULL) {
+                tree1.push_back(new Node(new_node->father_node_->x_, new_node->father_node_->y_, new_node->father_node_->theta_));
+                tree1[tree1.size() - 1]->father_node_ = tree1[tree1.size() - 2];
+                dx = tree1[tree1.size() - 1]->x_ - tree1[tree1.size() - 2]->x_;
+                dy = tree1[tree1.size() - 1]->y_ - tree1[tree1.size() - 2]->y_;
+                tree1[tree1.size() - 1]->dist_to_root_ = tree1[tree1.size() - 2]->dist_to_root_ + sqrt(pow(dx, 2) + pow(dy, 2));
+                new_node = new_node->father_node_;
+            }
+            tree1[tree1.size() - 1]->goal_flag_ = true;
+        }
+
+        return ans;
+    }
+
     void InformedRrt::getTheInitPath() {
         if(joint_node_ == NULL) {
             return;
@@ -529,6 +572,49 @@ namespace informed_rrt
         }
         cout << "the distance of path may is: " << dist << ", " << joint_node_->dist_of_path_ << endl;
         /////////////////////////////
+    }
+
+    void InformedRrt::getTheInitPath2() {
+        if(joint_node_ == NULL) {
+            return;
+        }
+
+        int index;
+        bool find_path_flag = false;
+        double max_d = 99999;
+        for(int i = 0; i < start_tree_.size(); i++) {
+            if(start_tree_[i]->goal_flag_ == 1) {
+                if(max_d > start_tree_[i]->dist_to_root_) {
+                    max_d = start_tree_[i]->dist_to_root_;
+                    index = i;
+                    find_path_flag = true;
+                }
+            }
+        }
+        if(find_path_flag == false) {
+            return;
+        }
+
+        vector<Node*> path1;
+        path1.push_back(start_tree_[index]);
+        while(path1[path1.size() - 1]->father_node_ != NULL) {
+            path1.push_back(path1[path1.size() - 1]->father_node_);
+        }
+        reverse(path1.begin(), path1.end());
+        
+        path_.poses.clear();
+        for(int i = 0; i < path1.size(); i++) {
+            geometry_msgs::PoseStamped pose;
+            pose.header.frame_id = "map";
+            pose.pose.position.x = path1[i]->x_;
+            pose.pose.position.y = path1[i]->y_;
+            pose.pose.position.z = 0.1;
+            pose.pose.orientation.w = cos(path1[i]->theta_ / 2);
+            pose.pose.orientation.z = sin(path1[i]->theta_ / 2);
+            path_.poses.push_back(pose);
+        }
+        pub_path_2_.publish(path_);
+        cout << "the distance of path may is: " << getPathLength() << endl;
     }
 
     double InformedRrt::getPathLength() {
@@ -695,16 +781,6 @@ namespace informed_rrt
         }
         pub_tree_.publish(tree);
         pub_node_.publish(node);
-        // cout << "the scale of trees: " <<  start_tree_.size() << ", " << goal_tree_.size() << endl;
-        // for(int i = 0; i < start_tree_.size(); i++) {
-        //     cout << start_tree_[i]->x_ << ", " << start_tree_[i]->y_ << ", " << start_tree_[i]->dist_to_root_ << endl;
-        // }
-        // cout << "other tree." << endl;
-        // for(int i = 0; i < goal_tree_.size(); i++) {
-        //     cout << goal_tree_[i]->x_ << ", " << goal_tree_[i]->y_ << ", " << goal_tree_[i]->dist_to_root_ << endl;
-        // }
-
-        //getchar();
     }
 
     void InformedRrt::displayPoint(double x, double y) {

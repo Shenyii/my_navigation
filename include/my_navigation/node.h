@@ -14,6 +14,7 @@ public:
     Node* joint_node_;
     double dist_to_root_;
     double dist_of_path_;
+    bool goal_flag_;
 
     Node();
     ~Node();

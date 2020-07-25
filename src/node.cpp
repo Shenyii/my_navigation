@@ -1,7 +1,8 @@
 #include "node.h"
 
 Node::Node()
-: x_(0), y_(0), theta_(0), dist_to_root_(99999), dist_of_path_(99999), father_node_(NULL), joint_node_(NULL) {}
+: x_(0), y_(0), theta_(0), dist_to_root_(99999), dist_of_path_(99999), father_node_(NULL), joint_node_(NULL), 
+  goal_flag_(false) {}
 
 Node::~Node() {
     // delete father_node_;
@@ -9,7 +10,7 @@ Node::~Node() {
 }
 
 Node::Node(double x, double y, double theta)
-: dist_to_root_(99999), dist_of_path_(99999), father_node_(NULL), joint_node_(NULL) {
+: dist_to_root_(99999), dist_of_path_(99999), father_node_(NULL), joint_node_(NULL), goal_flag_(false) {
     x_ = x;
     y_ = y;
     theta_ = theta;

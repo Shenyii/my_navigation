@@ -68,6 +68,7 @@
          vector<Node*> start_tree_;
          Node* joint_node_;
          vector<Node*> goal_tree_;
+         vector<Node*> path_end_;
          nav_msgs::Path path_;
          ros::Publisher pub_path_;
          int pose_valid_threshold_;
@@ -87,7 +88,9 @@
          bool connectTwoNode(Node* node1, Node* Node2, bool connect_flag);
          bool connectTwoNode2(Node* node1, Node* Node2, bool connect_flag);
          bool findPathCheck(vector<Node*>& tree1, vector<Node*>& tree2);
+         bool findPathCheck2(vector<Node*>& tree1, vector<Node*>& tree2);
          void getTheInitPath();
+         void getTheInitPath2();
          double getPathLength();
          void trimTheTree(geometry_msgs::Pose2D point);
 
