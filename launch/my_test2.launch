@@ -9,4 +9,6 @@
 
     <node pkg="rviz" type="rviz" name="rviz" output="screen"/>
 
+    <node pkg="my_navigation" type="hybird_A_star" name="hybird_A_star" output="screen"/>
+
 </launch>

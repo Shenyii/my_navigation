@@ -127,8 +127,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
- include/my_navigation
-  ${catkin_INCLUDE_DIRS}
+    include
+    include/my_navigation
+    ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -209,3 +210,7 @@ add_library(informed_rrt_lib src/informed_rrt.cpp src/node.cpp)
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(hybird_A_star src/hybird_A_star.cpp)
+target_link_libraries(hybird_A_star ${catkin_LIBRARIES})
+add_dependencies(hybird_A_star my_navigation_gencpp)
