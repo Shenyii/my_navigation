@@ -79,11 +79,12 @@ bool HybirdAStar::searchThePath() {
         delete tree_[i];
     }
     tree_.clear();
-    tree_.push_back(new Node(start_x_, start_y_, start_theta_));
+    tree_.push_back(new Node(start_x_, start_y_, start_theta_, 1, 0, 0));
     open_list_.clear();
     open_list_.push_back(tree_[0]);
     while(ros::ok() && open_list_.size() > 0) {
         sort(open_list_.begin(), open_list_.end());
+        extendTree(open_list_[0]);
     }
 
     return false;
@@ -122,8 +123,17 @@ void HybirdAStar::extendTree(Node* node) {
         double theta = node->theta_ + w * det_t;
         double x = node->x_ + extend_dist_ * cos(theta);
         double y = node->y_ + extend_dist_ * sin(theta);
-
+        double heuristics_value;
     }
+}
+
+bool HybirdAStar::beInTree(Node* node, vector<Node*>& tree) {
+    for(int i = 0; i < tree.size(); i++) {
+        if(nodeEquality(node, tree[i])) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int main(int argc, char** argv) {

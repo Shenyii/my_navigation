@@ -18,6 +18,8 @@ public:
     double x_;
     double y_;
     double theta_;
+    double v_;
+    double w_;
     Node* father_node_;
     double heuristics_value_;
 
@@ -28,6 +30,14 @@ public:
         y_ = y;
         theta_ = theta;
         heuristics_value_ = 0;
+    };
+    Node(double x, double y, double theta, double v, double w, double heuristics_value) {
+        x_ = x;
+        y_ = y;
+        theta_ = theta;
+        v_ = v;
+        w_ = w;
+        heuristics_value_ = heuristics_value;
     };
 
     bool operator<(Node* node) {
@@ -69,6 +79,7 @@ private:
     bool nodeObstacleCheck(Node* node);
     bool nodeObstacleCheck(double x, double y);
     void extendTree(Node* node);
+    bool beInTree(Node* node, vector<Node*>& tree);
 };
 
 #endif
