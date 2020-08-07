@@ -8,6 +8,8 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/PointCloud.h>
+#include <geometry_msgs/Point32.h>
 
 #define PI 3.14159265
 
@@ -56,6 +58,7 @@ private:
     nav_msgs::OccupancyGrid ori_map_;
     ros::Subscriber sub_start_pose_;
     ros::Subscriber sub_goal_pose_;
+    ros::Publisher pub_tree_;
 
     void subOriMap(nav_msgs::OccupancyGrid map);
     void subStartPose(geometry_msgs::PoseWithCovarianceStamped start_pose);
@@ -72,6 +75,7 @@ private:
     int obstacle_threshold_;
     double extend_dist_;
     vector<double> w_seq_;
+    bool find_path_flag_;
 
     void worldToMap(double wx, double wy, int& mx, int& my);
     bool nodeEquality(Node* node1, Node* node2);
@@ -79,7 +83,11 @@ private:
     bool nodeObstacleCheck(Node* node);
     bool nodeObstacleCheck(double x, double y);
     void extendTree(Node* node);
-    bool beInTree(Node* node, vector<Node*>& tree);
+    int beInTree(Node* node, vector<Node*>& tree);
+    double deltaAngle(double angle0, double angle1);
+    double vectorProgection(double base_x, double base_y, double x, double y);
+    bool findPathCheck(double x, double y);
+    void displayTheTree();
 };
 
 #endif
