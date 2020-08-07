@@ -217,13 +217,14 @@ void HybirdAStar::displayTheTree() {
         double v = 1.0;
         double det_t = extend_dist_ / v;
         double w = (tree_[i]->theta_ - tree_[i]->father_node_->theta_) / det_t;
-        double x = tree_[i]->father_node_->x_;
-        double y = tree_[i]->father_node_->y_;
-        double theta = tree_[i]->father_node_->theta_;
+        double x;
+        double y;
+        double theta;
         for(double t = 0; t < det_t; t+=0.007) {
-            theta += w * t;
-            x += v * t * cos(theta);
-            y += v * t * sin(theta);
+            theta =tree_[i]->father_node_->theta_ + w * t;
+            x = tree_[i]->father_node_->x_ + v * t * cos(theta);
+            y = tree_[i]->father_node_->y_ + v * t * sin(theta);
+            //cout << x << ", " << y << ", " << theta << ", " << w << ", " << t << endl;
             geometry_msgs::Point32 point;
             point.x = x;
             point.y = y;
@@ -232,7 +233,7 @@ void HybirdAStar::displayTheTree() {
         }
     }
     pub_tree_.publish(points);
-    getchar();
+    //getchar();
 }
 
 int main(int argc, char** argv) {
