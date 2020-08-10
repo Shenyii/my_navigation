@@ -6,6 +6,7 @@ HybirdAStar::HybirdAStar()
     sub_start_pose_ = nh_.subscribe("/initialpose", 2, &HybirdAStar::subStartPose, this);
     sub_goal_pose_ = nh_.subscribe("/move_base_simple/goal", 2, &HybirdAStar::subGoalPose, this);
     pub_tree_ = nh_.advertise<sensor_msgs::PointCloud>("/tree", 3);
+    pub_path_ = nh_.advertise<nav_msgs::Path>("/own_path", 3);
     w_seq_.push_back(20);
     w_seq_.push_back(10);
     w_seq_.push_back(5);
@@ -74,12 +75,12 @@ bool HybirdAStar::nodeEquality(Node* node1, Node* node2) {
 
 bool HybirdAStar::searchThePath() {
     bool ans;
-    ///////////////////////
-    start_x_ = 0;
-    start_y_ = 0.5;
-    goal_x_ = 2;
-    goal_y_ = 0.5;
-    ///////////////////////
+    // ///////////////////////
+    // start_x_ = 0;
+    // start_y_ = 0.5;
+    // goal_x_ = 1.5;
+    // goal_y_ = 1.5;
+    // ///////////////////////
     if(nodeObstacleCheck(start_x_, start_y_) || nodeObstacleCheck(goal_x_, goal_y_)) {
         cout << "the start or goal is wrong!" << endl;
         return false;
@@ -89,17 +90,25 @@ bool HybirdAStar::searchThePath() {
     }
     tree_.clear();
     tree_.push_back(new Node(start_x_, start_y_, start_theta_, 1, 0, 0));
+    tree_[0]->father_node_ = NULL;
     open_list_.clear();
     open_list_.push_back(tree_[0]);
     while(ros::ok() && open_list_.size() > 0 && find_path_flag_ == false) {
-        sort(open_list_.begin(), open_list_.end());
-        extendTree(open_list_[0]);
-        open_list_.erase(open_list_.begin(), open_list_.begin() + 1);
+        int index = bestSearchNode();
+        // for(int i = 0; i < open_list_.size(); i++) {
+        //     cout << open_list_[i]->heuristics_value_ << endl;
+        // }
+        // cout << index << ", " << open_list_[index]->heuristics_value_ << endl;
+        // getchar();
+        extendTree(open_list_[index]);
+        open_list_.erase(open_list_.begin() + index, open_list_.begin() + index + 1);
         //cout << "test: " << open_list_.size() << endl;
     }
 
     if(find_path_flag_ == true) {
         cout << "find a path." << endl;
+        find_path_flag_ = false;
+        displayThePath();
     }
     else {
         cout << "Not find a path." << endl;
@@ -143,9 +152,11 @@ void HybirdAStar::extendTree(Node* node) {
         double x = node->x_ + extend_dist_ * cos(theta);
         double y = node->y_ + extend_dist_ * sin(theta);
         double heuristics_value = 0;
-        heuristics_value += node->heuristics_value_;
-        heuristics_value += fabs(w) * det_t / PI;
-        heuristics_value -= vectorProgection(goal_x_ - node->x_, goal_y_ - node->y_, node->x_ - x, node->y_ - y);
+        //heuristics_value += node->heuristics_value_;
+        // heuristics_value += fabs(w) * det_t / PI;
+        // heuristics_value -= vectorProgection(goal_x_ - node->x_, goal_y_ - node->y_, x - node->x_, y - node->y_);
+        heuristics_value += hypot(x - goal_x_, y - goal_y_);
+        //heuristics_value += fabs(w - node->w_);
         if(nodeObstacleCheck(x, y) == true) {
             continue;
         }
@@ -155,15 +166,11 @@ void HybirdAStar::extendTree(Node* node) {
         double index = beInTree(new_node, tree_);
         if(index != -1) {
             if(new_node->heuristics_value_ < tree_[index]->heuristics_value_) {
-                delete tree_[index];
-                tree_.erase(tree_.begin() + index, tree_.begin() + index + 1);
-                tree_.push_back(new_node);
+                tree_[index]->copy(new_node);
                 displayTheTree();
                 findPathCheck(x, y);
             }
-            else {
-                delete new_node;
-            }
+            delete new_node;
         }
         else {
             tree_.push_back(new_node);
@@ -234,6 +241,36 @@ void HybirdAStar::displayTheTree() {
     }
     pub_tree_.publish(points);
     //getchar();
+}
+
+void HybirdAStar::displayThePath() {
+    nav_msgs::Path path;
+    path.header.frame_id = "map";
+    Node* path_node = tree_[tree_.size() - 1];
+    geometry_msgs::PoseStamped pose;
+    pose.header.frame_id = "map";
+    while(path_node->father_node_ != NULL) {
+        pose.pose.position.x = path_node->x_;
+        pose.pose.position.y = path_node->y_;
+        pose.pose.position.z = 0.05;
+        path_node = path_node->father_node_;
+        path.poses.push_back(pose);
+    }
+
+    pub_path_.publish(path);
+    cout << "display the path." << endl;
+}
+
+int HybirdAStar::bestSearchNode() {
+    int index;
+    double value = 9999999999;
+    for(int i = 0; i < open_list_.size(); i++) {
+        if(value > open_list_[i]->heuristics_value_) {
+            value = open_list_[i]->heuristics_value_;
+            index = i;
+        }
+    }
+    return index;
 }
 
 int main(int argc, char** argv) {

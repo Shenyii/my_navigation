@@ -10,6 +10,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/PointCloud.h>
 #include <geometry_msgs/Point32.h>
+#include <nav_msgs/Path.h>
 
 #define PI 3.14159265
 
@@ -45,6 +46,16 @@ public:
     bool operator<(Node* node) {
         return heuristics_value_ < node->heuristics_value_;
     };
+
+    void copy(Node* node0) {
+        x_ = node0->x_;
+        y_ = node0->y_;
+        theta_ = node0->theta_;
+        v_ = node0->v_;
+        w_ = node0->w_;
+        heuristics_value_ = node0->heuristics_value_;
+        father_node_ = node0->father_node_;
+    };
 };
 
 class HybirdAStar {
@@ -59,6 +70,7 @@ private:
     ros::Subscriber sub_start_pose_;
     ros::Subscriber sub_goal_pose_;
     ros::Publisher pub_tree_;
+    ros::Publisher pub_path_;
 
     void subOriMap(nav_msgs::OccupancyGrid map);
     void subStartPose(geometry_msgs::PoseWithCovarianceStamped start_pose);
@@ -88,6 +100,8 @@ private:
     double vectorProgection(double base_x, double base_y, double x, double y);
     bool findPathCheck(double x, double y);
     void displayTheTree();
+    void displayThePath();
+    int bestSearchNode();
 };
 
 #endif
