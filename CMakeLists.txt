@@ -216,6 +216,6 @@ add_library(informed_rrt_lib src/informed_rrt.cpp src/node.cpp)
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(hybird_A_star src/hybird_A_star.cpp)
+add_executable(hybird_A_star src/hybird_A_star.cpp src/generate_paths.cpp)
 target_link_libraries(hybird_A_star ${catkin_LIBRARIES})
 add_dependencies(hybird_A_star my_navigation_gencpp)

@@ -228,10 +228,6 @@ void HybirdAStar::displayTheTree() {
         double y;
         double theta;
         for(double t = 0; t < det_t; t+=0.007) {
-            theta =tree_[i]->father_node_->theta_ + w * t;
-            x = tree_[i]->father_node_->x_ + v * t * cos(theta);
-            y = tree_[i]->father_node_->y_ + v * t * sin(theta);
-            //cout << x << ", " << y << ", " << theta << ", " << w << ", " << t << endl;
             geometry_msgs::Point32 point;
             point.x = x;
             point.y = y;
@@ -276,6 +272,7 @@ int HybirdAStar::bestSearchNode() {
 int main(int argc, char** argv) {
     cout << "begin the program." << endl;
     ros::init(argc, argv, "hybird_A_star");
-    HybirdAStar test;
+    //HybirdAStar test;
+    GeneratePaths test2;
     return 0;
 }
