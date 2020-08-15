@@ -19,7 +19,7 @@ public:
     Node* father_node_;
     double heuristics_value_;
 
-    Node();
+    Node() {};
     ~Node() {};
     Node(double x, double y, double theta) {
         x_ = x;
@@ -60,11 +60,16 @@ class GeneratePaths {
 public:
     GeneratePaths();
     ~GeneratePaths();
-    vector<Path> generatePaths(double start_x, double start_y, double goal_x, double goal_y);
-    vector<Path> generatePaths(double start_x, double start_y, double theta, double goal_x, double goal_y);
+    vector<Path> generatePaths(double start_x, double start_y, double goal_x, double goal_y, double resolution);
+    vector<Path> generatePaths(double start_x, double start_y, double theta, double goal_x, double goal_y, double resolution);
 
 private:
-    vector<Path> path_;
+    vector<Path> paths_;
+
+    vector<Path> curvePaths(double x, double y, double resolution);
+    vector<Path> straightCurvePaths(double x, double y, double resolution);
+    vector<Path> curveStraightPaths(double x, double y, double resolution);
+    void pathsToWorld(double x, double y, double theta, vector<Path>& paths);
 };
 
 #endif
