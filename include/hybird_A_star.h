@@ -48,6 +48,7 @@ private:
     double extend_dist_;
     vector<double> w_seq_;
     bool find_path_flag_;
+    GeneratePaths generate_paths_;
 
     void worldToMap(double wx, double wy, int& mx, int& my);
     bool nodeEquality(Node* node1, Node* node2);

@@ -6,6 +6,9 @@
 
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
+#include <sensor_msgs/PointCloud.h>
+
+#define PI 3.14159265
 
 using namespace std;
 
@@ -54,6 +57,7 @@ public:
 class Path {
 public:
     vector<Node> path_;
+    double length_ = 0;
 };
 
 class GeneratePaths {
@@ -71,6 +75,12 @@ private:
     vector<Path> straightCurvePaths(double x, double y, double resolution);
     vector<Path> curveStraightPaths(double x, double y, double resolution);
     void pathsToWorld(double x, double y, double theta, vector<Path>& paths);
+    void addThePaths(vector<Path> paths);
+
+    void displayThePath(vector<Path> paths);
+
+    ros::NodeHandle nh_;
+    ros::Publisher pub_paths_;
 };
 
 #endif

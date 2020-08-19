@@ -75,44 +75,7 @@ bool HybirdAStar::nodeEquality(Node* node1, Node* node2) {
 
 bool HybirdAStar::searchThePath() {
     bool ans;
-    // ///////////////////////
-    // start_x_ = 0;
-    // start_y_ = 0.5;
-    // goal_x_ = 1.5;
-    // goal_y_ = 1.5;
-    // ///////////////////////
-    if(nodeObstacleCheck(start_x_, start_y_) || nodeObstacleCheck(goal_x_, goal_y_)) {
-        cout << "the start or goal is wrong!" << endl;
-        return false;
-    }
-    for(int i = 0; i < tree_.size(); i++) {
-        delete tree_[i];
-    }
-    tree_.clear();
-    tree_.push_back(new Node(start_x_, start_y_, start_theta_, 1, 0, 0));
-    tree_[0]->father_node_ = NULL;
-    open_list_.clear();
-    open_list_.push_back(tree_[0]);
-    while(ros::ok() && open_list_.size() > 0 && find_path_flag_ == false) {
-        int index = bestSearchNode();
-        // for(int i = 0; i < open_list_.size(); i++) {
-        //     cout << open_list_[i]->heuristics_value_ << endl;
-        // }
-        // cout << index << ", " << open_list_[index]->heuristics_value_ << endl;
-        // getchar();
-        extendTree(open_list_[index]);
-        open_list_.erase(open_list_.begin() + index, open_list_.begin() + index + 1);
-        //cout << "test: " << open_list_.size() << endl;
-    }
-
-    if(find_path_flag_ == true) {
-        cout << "find a path." << endl;
-        find_path_flag_ = false;
-        displayThePath();
-    }
-    else {
-        cout << "Not find a path." << endl;
-    }
+    generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
 
     return false;
 }
@@ -272,7 +235,6 @@ int HybirdAStar::bestSearchNode() {
 int main(int argc, char** argv) {
     cout << "begin the program." << endl;
     ros::init(argc, argv, "hybird_A_star");
-    //HybirdAStar test;
-    GeneratePaths test2;
+    HybirdAStar test;
     return 0;
 }
