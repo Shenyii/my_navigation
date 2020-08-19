@@ -70,6 +70,7 @@ public:
 private:
     vector<Path> paths_;
     vector<double> c_r_;
+    double min_r_;
 
     vector<Path> curvePaths(double x, double y, double resolution);
     vector<Path> straightCurvePaths(double x, double y, double resolution);

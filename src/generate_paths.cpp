@@ -7,6 +7,7 @@ GeneratePaths::GeneratePaths() {
     c_r_.push_back(4);
     c_r_.push_back(8);
     c_r_.push_back(16);
+    min_r_ = 1;
     pub_paths_ = nh_.advertise<sensor_msgs::PointCloud>("/paths", 3);
 }
 
@@ -40,32 +41,64 @@ vector<Path> GeneratePaths::generatePaths(double start_x, double start_y, double
     paths = curveStraightPaths(x, y, resolution);
     pathsToWorld(start_x, start_y, theta, paths);
     /////////add the path
+
+    return paths_;
 }
 
 vector<Path> GeneratePaths::curvePaths(double x, double y, double resolution) {
     vector<Path> paths;
     if(y == 0) {
-        for(int i = 0; i < c_r_.size(); i++) {
+        // for(int i = 0; i < c_r_.size(); i++) {
+        //     Path one_path;
+        //     Node one_node;
+        //     if(x <= 2 * c_r_[i]) {
+        //         double theta = asin(x / 2 / c_r_[i]);
+        //         one_path.path_.clear();
+        //         for(double j = PI / 2 + theta; j >= PI / 2 - theta; j-=(resolution / c_r_[i])) {
+        //             one_node.x_ = c_r_[i] * cos(j) + x / 2;
+        //             one_node.y_ = c_r_[i] * sin(j) - sqrt(c_r_[i] * c_r_[i] - x * x / 4);
+        //             one_path.path_.push_back(one_node);
+        //         }
+        //         paths.push_back(one_path);
+        //         theta = -theta;
+        //         one_path.path_.clear();
+        //         for(double j = -PI / 2 + theta; j <= -PI / 2 - theta; j+=(resolution / c_r_[i])) {
+        //             one_node.x_ = c_r_[i] * cos(j) + x / 2;
+        //             one_node.y_ = c_r_[i] * sin(j) + sqrt(c_r_[i] * c_r_[i] - x * x / 4);
+        //             one_path.path_.push_back(one_node);
+        //         }
+        //         paths.push_back(one_path);
+        //     }
+        // }
+        for(double theta = -PI / 2; theta <= PI / 2; theta += PI / 18) {
             Path one_path;
             Node one_node;
-            if(x <= 2 * c_r_[i]) {
-                double theta = asin(x / 2 / c_r_[i]);
-                one_path.path_.clear();
-                for(double j = PI / 2 + theta; j >= PI / 2 - theta; j-=(resolution / c_r_[i])) {
-                    one_node.x_ = c_r_[i] * cos(j) + x / 2;
-                    one_node.y_ = c_r_[i] * sin(j) - sqrt(c_r_[i] * c_r_[i] - x * x / 4);
+            if(fabs(theta) < 0.01) {
+                for(double x0 = 0; x0 <= x; x0 += resolution) {
+                    one_node.x_ = x0;
+                    one_node.y_ = 0;
                     one_path.path_.push_back(one_node);
                 }
-                paths.push_back(one_path);
-                theta = -theta;
-                one_path.path_.clear();
-                for(double j = -PI / 2 + theta; j <= -PI / 2 - theta; j+=(resolution / c_r_[i])) {
-                    one_node.x_ = c_r_[i] * cos(j) + x / 2;
-                    one_node.y_ = c_r_[i] * sin(j) + sqrt(c_r_[i] * c_r_[i] - x * x / 4);
-                    one_path.path_.push_back(one_node);
-                }
-                paths.push_back(one_path);
             }
+            else if(theta > 0) {
+                double c_r = fabs(x / 2 / sin(theta));
+                if(c_r < min_r_) continue;
+                for(double j = PI / 2 + theta; j >= PI / 2 - theta; j-= (resolution / c_r)) {
+                    one_node.x_ = c_r * cos(j) + x / 2;
+                    one_node.y_ = c_r * sin(j) - sqrt(c_r * c_r - x * x / 4);
+                    one_path.path_.push_back(one_node);
+                }
+            }
+            else {
+                double c_r = fabs(x / 2 / sin(theta));
+                if(c_r < min_r_) continue;
+                for(double j = -PI / 2 + theta; j <= -PI / 2 - theta; j += (resolution / c_r)) {
+                    one_node.x_ = c_r * cos(j) + x / 2;
+                    one_node.y_ = c_r * sin(j) + sqrt(c_r * c_r - x * x / 4);
+                    one_path.path_.push_back(one_node);
+                }
+            }
+            paths.push_back(one_path);
         }
     }
     else {
@@ -102,8 +135,8 @@ void GeneratePaths::pathsToWorld(double x, double y, double theta, vector<Path>&
     cout << "size of paths is: " << paths.size() << endl;
     for(int i = 0; i < paths.size(); i++) {
         for(int j = 0; j < paths[i].path_.size(); j++) {
-            double x0 = paths[i].path_[j].x_ * c - paths[i].path_[j].y_ * s;
-            double y0 = paths[i].path_[j].x_ * s + paths[i].path_[j].y_ * c;
+            double x0 = paths[i].path_[j].x_ * c - paths[i].path_[j].y_ * s + x;
+            double y0 = paths[i].path_[j].x_ * s + paths[i].path_[j].y_ * c + y;
             paths[i].path_[j].x_ = x0;
             paths[i].path_[j].y_ = y0;
         }
