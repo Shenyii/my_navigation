@@ -4,6 +4,13 @@
         "algorithm": "cpp",
         "iostream": "cpp",
         "cmath": "cpp",
-        "complex": "cpp"
+        "complex": "cpp",
+        "*.tcc": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "system_error": "cpp",
+        "sstream": "cpp"
     }
 }

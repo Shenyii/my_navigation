@@ -75,7 +75,7 @@ bool HybirdAStar::nodeEquality(Node* node1, Node* node2) {
 
 bool HybirdAStar::searchThePath() {
     bool ans;
-    generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
+    generate_paths_.generatePaths(start_x_, start_y_, start_theta_, goal_x_, goal_y_, ori_map_.info.resolution);
 
     return false;
 }

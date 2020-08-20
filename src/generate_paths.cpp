@@ -2,12 +2,8 @@
 
 GeneratePaths::GeneratePaths() {
     cout << "generate some paths" << endl;
-    c_r_.push_back(1);
-    c_r_.push_back(2);
-    c_r_.push_back(4);
-    c_r_.push_back(8);
-    c_r_.push_back(16);
     min_r_ = 1;
+    max_s_ = 5;
     pub_paths_ = nh_.advertise<sensor_msgs::PointCloud>("/paths", 3);
 }
 
@@ -16,9 +12,9 @@ GeneratePaths::~GeneratePaths() {}
 vector<Path> GeneratePaths::generatePaths(double start_x, double start_y, double goal_x, double goal_y, double resolution) {
     paths_.clear();
     double theta = atan2(goal_y - start_y, goal_x - start_x);
+
     vector<Path> paths = curvePaths(hypot(goal_x - start_x, goal_y - start_y), 0, resolution);
     pathsToWorld(start_x, start_y, theta, paths);
-    
     addThePaths(paths);
 
     displayThePath(paths);
@@ -31,16 +27,20 @@ vector<Path> GeneratePaths::generatePaths(double start_x, double start_y, double
     Node new_node;
     vector<Node> path;
     double x, y;
-    x = (goal_x - start_x) * cos(theta) + (goal_y - start_y) * sin(theta);
-    y = (goal_y - start_y) * cos(theta) - (goal_x - start_x) * sin(theta);
-    vector<Path> paths = straightCurvePaths(x, y, resolution);
-    pathsToWorld(start_x, start_y, theta, paths);
-    /////////add the path
+    x = (goal_x - start_x) * cos(theta) + (goal_y - start_y) * sin(theta);    
+    y = (goal_y - start_y) * cos(theta) - (goal_x - start_x) * sin(theta); 
 
-    paths.clear();
-    paths = curveStraightPaths(x, y, resolution);
+    vector<Path> paths;
+    paths = straightCurvePaths(x, y, resolution);
     pathsToWorld(start_x, start_y, theta, paths);
-    /////////add the path
+    addThePaths(paths);
+
+    // paths.clear();
+    // paths = curveStraightPaths(x, y, resolution);
+    // pathsToWorld(start_x, start_y, theta, paths);
+    // addThePaths(paths);
+
+    displayThePath(paths);
 
     return paths_;
 }
@@ -48,28 +48,6 @@ vector<Path> GeneratePaths::generatePaths(double start_x, double start_y, double
 vector<Path> GeneratePaths::curvePaths(double x, double y, double resolution) {
     vector<Path> paths;
     if(y == 0) {
-        // for(int i = 0; i < c_r_.size(); i++) {
-        //     Path one_path;
-        //     Node one_node;
-        //     if(x <= 2 * c_r_[i]) {
-        //         double theta = asin(x / 2 / c_r_[i]);
-        //         one_path.path_.clear();
-        //         for(double j = PI / 2 + theta; j >= PI / 2 - theta; j-=(resolution / c_r_[i])) {
-        //             one_node.x_ = c_r_[i] * cos(j) + x / 2;
-        //             one_node.y_ = c_r_[i] * sin(j) - sqrt(c_r_[i] * c_r_[i] - x * x / 4);
-        //             one_path.path_.push_back(one_node);
-        //         }
-        //         paths.push_back(one_path);
-        //         theta = -theta;
-        //         one_path.path_.clear();
-        //         for(double j = -PI / 2 + theta; j <= -PI / 2 - theta; j+=(resolution / c_r_[i])) {
-        //             one_node.x_ = c_r_[i] * cos(j) + x / 2;
-        //             one_node.y_ = c_r_[i] * sin(j) + sqrt(c_r_[i] * c_r_[i] - x * x / 4);
-        //             one_path.path_.push_back(one_node);
-        //         }
-        //         paths.push_back(one_path);
-        //     }
-        // }
         for(double theta = -PI / 2; theta <= PI / 2; theta += PI / 18) {
             Path one_path;
             Node one_node;
@@ -104,18 +82,12 @@ vector<Path> GeneratePaths::curvePaths(double x, double y, double resolution) {
     else {
         Path one_path;
         Node one_node;
-        double c_r = hypot(x, y) / 2 / y;
-        if(fabs(c_r) >= c_r_[0]) {
-            double theta = 2 * atan2(y, x);
-            double x0 = 0;
-            double y0 = 0;
-            double theta0 = 0;
-            for(double j = 0; j < theta; j+=(resolution / fabs(c_r))) {
-                theta0 += theta / fabs(theta) * j;
-                x0 += resolution * cos(theta0);
-                y0 += resolution * sin(theta0);
-                one_node.x_ = x0;
-                one_node.y_ = y0;
+        double c_r = (x * x + y * y) / 2 / y;
+        if(fabs(c_r) >= min_r_) {
+            double theta = 2 * fabs(atan2(y, x));
+            for(double j = 0; j < theta; j += (resolution / fabs(c_r))) {
+                one_node.x_ = fabs(c_r) * sin(j);
+                one_node.y_ = c_r - c_r * cos(j);
                 one_path.path_.push_back(one_node);
             }
             paths.push_back(one_path);
@@ -125,7 +97,32 @@ vector<Path> GeneratePaths::curvePaths(double x, double y, double resolution) {
     return paths;
 }
 
-vector<Path> GeneratePaths::straightCurvePaths(double x, double y, double resolution) {}
+vector<Path> GeneratePaths::straightCurvePaths(double x, double y, double resolution) {
+    vector<Path> paths;
+    for(double s = 0; s < max_s_; s += 0.5) {
+        vector<Path> part_of_path;
+        Path one_path;
+        Node one_node;
+        for(double x0 = 0; x0 < s; x0 += resolution) {
+            one_node.x_ = x0;
+            one_node.y_ = 0;
+            one_path.path_.push_back(one_node);
+        }
+        part_of_path = curvePaths(x - s, y, resolution);
+        for(int i = 0; i < part_of_path.size(); i++) {
+            for(int j = 0; j < part_of_path[i].path_.size(); j++) {
+                one_node.x_ = part_of_path[i].path_[j].x_ + s;
+                one_node.y_ = part_of_path[i].path_[j].y_;
+                one_path.path_.push_back(one_node);
+            }
+        }
+        if(part_of_path.size() != 0) {
+            paths.push_back(one_path);
+        }
+    }
+
+    return paths;
+}
 
 vector<Path> GeneratePaths::curveStraightPaths(double x, double y, double resolution) {}
 
