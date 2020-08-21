@@ -31,14 +31,14 @@ vector<Path> GeneratePaths::generatePaths(double start_x, double start_y, double
     y = (goal_y - start_y) * cos(theta) - (goal_x - start_x) * sin(theta); 
 
     vector<Path> paths;
-    paths = straightCurvePaths(x, y, resolution);
-    pathsToWorld(start_x, start_y, theta, paths);
-    addThePaths(paths);
-
-    // paths.clear();
-    // paths = curveStraightPaths(x, y, resolution);
+    // paths = straightCurvePaths(x, y, resolution);
     // pathsToWorld(start_x, start_y, theta, paths);
     // addThePaths(paths);
+
+    paths.clear();
+    paths = curveStraightPaths(x, y, resolution);
+    pathsToWorld(start_x, start_y, theta, paths);
+    addThePaths(paths);
 
     displayThePath(paths);
 
@@ -124,7 +124,19 @@ vector<Path> GeneratePaths::straightCurvePaths(double x, double y, double resolu
     return paths;
 }
 
-vector<Path> GeneratePaths::curveStraightPaths(double x, double y, double resolution) {}
+vector<Path> GeneratePaths::curveStraightPaths(double x, double y, double resolution) {
+    vector<Path> paths;
+    for(double angle = -PI; angle < PI; angle += PI / 18) {
+        double k = tan(angle);
+        if(x >= 0) {
+            if(x - y / k <= 0) continue;
+            if(hypot(y / k, y) < x - y / k) continue;
+        }
+        else {}
+    }
+
+    return paths;
+}
 
 void GeneratePaths::pathsToWorld(double x, double y, double theta, vector<Path>& paths) {
     double c = cos(theta);

@@ -135,6 +135,7 @@ include_directories(
     include
     include/my_navigation
     ${catkin_INCLUDE_DIRS}
+    /usr/include/eigen3
 )
 
 ## Declare a C++ library

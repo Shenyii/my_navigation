@@ -8,6 +8,8 @@
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/PointCloud.h>
 
+#include <Eigen/Dense>
+
 #define PI 3.14159265
 
 using namespace std;
