@@ -126,34 +126,40 @@ vector<Path> GeneratePaths::straightCurvePaths(double x, double y, double resolu
 
 vector<Path> GeneratePaths::curveStraightPaths(double x, double y, double resolution) {
     vector<Path> paths;
-    // for(double angle = -PI; angle < PI; angle += PI / 18) {
-    //     double k = tan(angle);
-    //     if(x >= 0) {
-    //         if(x - y / k <= 0) continue;
-    //         if(hypot(y / k, y) < x - y / k) continue;
-    //     }
-    //     else {}
+    for(double angle = -PI; angle < PI; angle += PI / 18) {
+        double k = tan(angle);
+        double r1 = (y - x * k + sqrt(pow(x * k - y, 2) + k * k * pow(x * k - y, 2))) / k / k;
+        if(fabs(r1 < min_r_)) {
+            continue;
+        }
+        double x0 = (k * r - k * y + k * k * x) / (k * k + 1);
+        double y0 = y + k * (x0 - x);
+        double theta = atan2(x0, r - y0);
+        double r2 = (y - x * k - sqrt(pow(x * k - y, 2) + k * k * pow(x * k - y, 2))) / k / k;
+        if(fabs(r2 < min_r_)) {
+            continue;
+        }
+    }
+    // double k = (y + 5) / (x + 5);
+    // double r1 = (5 - 5 * k + sqrt(pow(5 * k - 5, 2) + k * k * pow(5 * k - 5, 2))) / k / k;
+    // double r2 = (5 - 5 * k - sqrt(pow(5 * k - 5, 2) + k * k * pow(5 * k - 5, 2))) / k / k;
+    // cout << "r1, r2: " << r1 << ", " << r2 << endl;
+    // Path one_path;
+    // Node one_node;
+    // for(double x = -100; x < 100; x += 0.1) {
+    //     one_node.x_ = x;
+    //     one_node.y_ = k * x + 5 * k - 5;
+    //     one_path.path_.push_back(one_node);
     // }
-    double k = (y + 5) / (x + 5);
-    double r1 = (5 - 5 * k + sqrt(pow(5 * k - 5, 2) + k * k * pow(5 * k - 5, 2))) / k / k;
-    double r2 = (5 - 5 * k - sqrt(pow(5 * k - 5, 2) + k * k * pow(5 * k - 5, 2))) / k / k;
-    cout << "r1, r2: " << r1 << ", " << r2 << endl;
-    Path one_path;
-    Node one_node;
-    for(double x = -100; x < 100; x += 0.1) {
-        one_node.x_ = x;
-        one_node.y_ = k * x + 5 * k - 5;
-        one_path.path_.push_back(one_node);
-    }
-    for(double theta = -PI; theta < PI; theta += PI / 180) {
-        one_node.x_ = r1 * cos(theta);
-        one_node.y_ = r1 * sin(theta) + r1;
-        one_path.path_.push_back(one_node);
-        one_node.x_ = r2 * cos(theta);
-        one_node.y_ = r2 * sin(theta) + r2;
-        one_path.path_.push_back(one_node);
-    }
-    paths.push_back(one_path);
+    // for(double theta = -PI; theta < PI; theta += PI / 180) {
+    //     one_node.x_ = r1 * cos(theta);
+    //     one_node.y_ = r1 * sin(theta) + r1;
+    //     one_path.path_.push_back(one_node);
+    //     one_node.x_ = r2 * cos(theta);
+    //     one_node.y_ = r2 * sin(theta) + r2;
+    //     one_path.path_.push_back(one_node);
+    // }
+    // paths.push_back(one_path);
 
     return paths;
 }
