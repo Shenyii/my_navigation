@@ -11,6 +11,8 @@
         "string": "cpp",
         "unordered_map": "cpp",
         "system_error": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "ostream": "cpp",
+        "core": "cpp"
     }
 }

@@ -7,6 +7,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <sensor_msgs/PointCloud.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 #include <Eigen/Dense>
 
@@ -66,19 +67,29 @@ class GeneratePaths {
 public:
     GeneratePaths();
     ~GeneratePaths();
-    vector<Path> generatePaths(double start_x, double start_y, double goal_x, double goal_y, double resolution);
-    vector<Path> generatePaths(double start_x, double start_y, double theta, double goal_x, double goal_y, double resolution);
+    Path generatePaths(double start_x, double start_y, double goal_x, double goal_y, double resolution);
+    Path generatePaths(double start_x, double start_y, double theta, double goal_x, double goal_y, double resolution);
+    void loadTheMap(nav_msgs::OccupancyGrid map);
 
 private:
+    double ref_x_;
+    double ref_y_;
+    double ref_theta_;
     vector<Path> paths_;
     double max_s_;
     double min_r_;
+    double max_r_;
+    nav_msgs::OccupancyGrid ref_map_;
+    double obstacle_threshold_;
 
     vector<Path> curvePaths(double x, double y, double resolution);
+    vector<Path> curvePaths2(double x, double y, double dist, double resolution);
     vector<Path> straightCurvePaths(double x, double y, double resolution);
     vector<Path> curveStraightPaths(double x, double y, double resolution);
     void pathsToWorld(double x, double y, double theta, vector<Path>& paths);
     void addThePaths(vector<Path> paths);
+    bool obstacleCheck(double ref_x, double ref_y, double ref_theta, double x, double y);
+    Path bestPath();
 
     void displayThePath(vector<Path> paths);
 

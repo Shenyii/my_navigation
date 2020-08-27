@@ -34,6 +34,7 @@ void HybirdAStar::subOriMap(nav_msgs::OccupancyGrid map) {
     ori_map_ = map;
     extend_dist_ = ori_map_.info.resolution * 1.414;
     cout << "get the origin map." << endl;
+    generate_paths_.loadTheMap(map);
 }
 
 void HybirdAStar::subStartPose(geometry_msgs::PoseWithCovarianceStamped start_pose) {
@@ -75,6 +76,7 @@ bool HybirdAStar::nodeEquality(Node* node1, Node* node2) {
 
 bool HybirdAStar::searchThePath() {
     bool ans;
+    //generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
     generate_paths_.generatePaths(start_x_, start_y_, start_theta_, goal_x_, goal_y_, ori_map_.info.resolution);
 
     return false;
