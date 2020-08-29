@@ -51,7 +51,19 @@ void HybirdAStar::subGoalPose(geometry_msgs::PoseStamped goal_pose) {
     goal_theta_ = acos(2 * pow(goal_pose.pose.orientation.w, 2) - 1);
     goal_theta_ = goal_pose.pose.orientation.w * goal_pose.pose.orientation.z < 0 ? - goal_theta_ : goal_theta_;
     //cout << goal_x_ << ", " << goal_y_ << ", " << goal_theta_ << endl;
+    for(int i = 0; i < tree_.size(); i++) {
+        delete tree_[i];
+    }
+    tree_.clear();
+    PathNode* one_path_node;
+    Path path;
+    path.path_.push_back(Node(start_x_, start_y_, start_theta_));
+    path.length_ = 0;
+    one_path_node = new PathNode(path, 0, NULL);
+    tree_.push_back(one_path_node);
     searchThePath();
+
+    cout << "tree size = " << tree_.size() << endl;
 }
 
 void HybirdAStar::worldToMap(double wx, double wy, int& mx, int& my) {
@@ -77,7 +89,17 @@ bool HybirdAStar::nodeEquality(Node* node1, Node* node2) {
 bool HybirdAStar::searchThePath() {
     bool ans;
     //generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
-    generate_paths_.generatePaths(start_x_, start_y_, start_theta_, goal_x_, goal_y_, ori_map_.info.resolution);
+    //generate_paths_.generatePaths(start_x_, start_y_, start_theta_, goal_x_, goal_y_, ori_map_.info.resolution);
+    cout << "test: " << tree_.size() << endl;
+    Path path = generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
+    if(path.path_.size() != 0) {
+        PathNode* one_path_node;
+        one_path_node = new PathNode(path, 0, tree_[0]);
+        tree_.push_back(one_path_node);
+        displayTheTree();
+        return true;
+    }
+    extendTreeRoot();
 
     return false;
 }
@@ -108,40 +130,34 @@ bool HybirdAStar::nodeObstacleCheck(double x, double y) {
 }
 
 void HybirdAStar::extendTree(Node* node) {
-    double v = 1;
-    double det_t = extend_dist_ / v;
+}
 
-    for(int i = 0; i < w_seq_.size(); i++) {
-        double w = w_seq_[i];
-        double theta = node->theta_ + w * det_t;
-        double x = node->x_ + extend_dist_ * cos(theta);
-        double y = node->y_ + extend_dist_ * sin(theta);
-        double heuristics_value = 0;
-        //heuristics_value += node->heuristics_value_;
-        // heuristics_value += fabs(w) * det_t / PI;
-        // heuristics_value -= vectorProgection(goal_x_ - node->x_, goal_y_ - node->y_, x - node->x_, y - node->y_);
-        heuristics_value += hypot(x - goal_x_, y - goal_y_);
-        //heuristics_value += fabs(w - node->w_);
-        if(nodeObstacleCheck(x, y) == true) {
+void HybirdAStar::extendTreeRoot() {
+    for(double theta = -PI; theta < PI; theta += PI / 20) {
+        PathNode* one_path_node;
+        Path one_path;
+        Node one_node;
+        double c = cos(theta);
+        double s = sin(theta);
+        for(double dist = 0; dist < extend_dist_; dist += ori_map_.info.resolution) {
+            one_node.x_ = tree_[0]->path_.path_[0].x_ + dist * c;
+            one_node.y_ = tree_[0]->path_.path_[0].y_ + dist * s;
+            if(nodeObstacleCheck(one_node.x_, one_node.y_) == true) {
+                one_path.path_.clear();
+                break;
+            }
+            else {
+                one_path.path_.push_back(one_node);
+            }
+        }
+        if(one_path.path_.size() == 0) {
             continue;
         }
-        Node* new_node;
-        new_node = new Node(x, y, theta, v, w, heuristics_value);
-        new_node->father_node_ = node;
-        double index = beInTree(new_node, tree_);
-        if(index != -1) {
-            if(new_node->heuristics_value_ < tree_[index]->heuristics_value_) {
-                tree_[index]->copy(new_node);
-                displayTheTree();
-                findPathCheck(x, y);
-            }
-            delete new_node;
-        }
         else {
-            tree_.push_back(new_node);
-            displayTheTree();
-            open_list_.push_back(new_node);
-            findPathCheck(x, y);
+            double h = tree_[0]->length_ + extend_dist_ + hypot((one_path.path_.end() - 1)->x_ - goal_x_, (one_path.path_.end() - 1)->y_ - goal_y_);
+            one_path.length_ = extend_dist_;
+            one_path_node = new PathNode(one_path, h, tree_[0]);
+            tree_.push_back(one_path_node);
         }
     }
 }
@@ -186,17 +202,11 @@ void HybirdAStar::displayTheTree() {
     sensor_msgs::PointCloud points;
     points.header.frame_id = "map";
     for(int i = 1; i < tree_.size(); i++) {
-        double v = 1.0;
-        double det_t = extend_dist_ / v;
-        double w = (tree_[i]->theta_ - tree_[i]->father_node_->theta_) / det_t;
-        double x;
-        double y;
-        double theta;
-        for(double t = 0; t < det_t; t+=0.007) {
+        for(int j = 0; j < tree_[i]->path_.path_.size(); j++) {
             geometry_msgs::Point32 point;
-            point.x = x;
-            point.y = y;
-            point.z = 0.02;
+            point.x = tree_[i]->path_.path_[j].x_;
+            point.y = tree_[i]->path_.path_[j].y_;
+            point.z = 0.01;
             points.points.push_back(point);
         }
     }
@@ -207,16 +217,6 @@ void HybirdAStar::displayTheTree() {
 void HybirdAStar::displayThePath() {
     nav_msgs::Path path;
     path.header.frame_id = "map";
-    Node* path_node = tree_[tree_.size() - 1];
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "map";
-    while(path_node->father_node_ != NULL) {
-        pose.pose.position.x = path_node->x_;
-        pose.pose.position.y = path_node->y_;
-        pose.pose.position.z = 0.05;
-        path_node = path_node->father_node_;
-        path.poses.push_back(pose);
-    }
 
     pub_path_.publish(path);
     cout << "display the path." << endl;
@@ -226,10 +226,6 @@ int HybirdAStar::bestSearchNode() {
     int index;
     double value = 9999999999;
     for(int i = 0; i < open_list_.size(); i++) {
-        if(value > open_list_[i]->heuristics_value_) {
-            value = open_list_[i]->heuristics_value_;
-            index = i;
-        }
     }
     return index;
 }

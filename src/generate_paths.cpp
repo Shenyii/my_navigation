@@ -12,6 +12,9 @@ GeneratePaths::GeneratePaths() {
 GeneratePaths::~GeneratePaths() {}
 
 Path GeneratePaths::generatePaths(double start_x, double start_y, double goal_x, double goal_y, double resolution) {
+    if(ref_map_.data.size() == 0) {
+        cout << "No map!" << endl;
+    }
     ref_x_ = start_x;
     ref_y_ = start_y;
     paths_.clear();
@@ -22,12 +25,15 @@ Path GeneratePaths::generatePaths(double start_x, double start_y, double goal_x,
     pathsToWorld(start_x, start_y, theta, paths);
     addThePaths(paths);
 
-    displayThePath(paths);
+    displayThePath(paths_);
 
     return bestPath();
 }
 
 Path GeneratePaths::generatePaths(double start_x, double start_y, double theta, double goal_x, double goal_y, double resolution) {
+    if(ref_map_.data.size() == 0) {
+        cout << "No map!" << endl;
+    }
     ref_x_ = start_x;
     ref_y_ = start_y;
     ref_theta_ = theta;
@@ -43,12 +49,12 @@ Path GeneratePaths::generatePaths(double start_x, double start_y, double theta, 
     pathsToWorld(start_x, start_y, theta, paths);
     addThePaths(paths);
 
-    // paths.clear();
-    // paths = curveStraightPaths(x, y, resolution);
-    // pathsToWorld(start_x, start_y, theta, paths);
-    // addThePaths(paths);
+    paths.clear();
+    paths = curveStraightPaths(x, y, resolution);
+    pathsToWorld(start_x, start_y, theta, paths);
+    addThePaths(paths);
 
-    displayThePath(paths);
+    displayThePath(paths_);
 
     return bestPath();
 }
@@ -115,7 +121,6 @@ vector<Path> GeneratePaths::curvePaths2(double x, double y, double dist, double 
     Node one_node;
     x = x - dist;
     double c_r = (x * x + y * y) / 2 / y;
-    //cout << "dist: " << dist << ", r: " << c_r << endl;
     if(fabs(c_r) >= min_r_) {
         double theta = 2 * fabs(atan2(y, x));
         //cout << "r: " << c_r << ", theta: " << theta << ", dist: " << dist << endl;
@@ -124,11 +129,13 @@ vector<Path> GeneratePaths::curvePaths2(double x, double y, double dist, double 
             one_node.x_ = fabs(c_r) * sin(j) + dist;
             one_node.y_ = c_r - c_r * cos(j);
             if(obstacleCheck(ref_x_, ref_y_, ref_theta_, one_node.x_, one_node.y_)) {
+                //cout << "find obstacle" << endl;
                 one_path.path_.clear();
                 break;
             }
             one_path.path_.push_back(one_node);
         }
+        //cout << one_path.path_.size() << "???" << endl;
         if(one_path.path_.size() == 0) return paths;
         one_path.length_ = fabs(c_r * theta);
         paths.push_back(one_path);
@@ -154,21 +161,21 @@ vector<Path> GeneratePaths::straightCurvePaths(double x, double y, double resolu
             if(one_path.path_.size() == 0) continue;
         }
         part_of_path = curvePaths2(x, y, s, resolution);
+        //cout << "test: " << part_of_path.size() << endl;
         if(part_of_path.size() != 0) {
             for(int j = 0; j < part_of_path[0].path_.size(); j++) {
                 one_node.x_ = part_of_path[0].path_[j].x_;
                 one_node.y_ = part_of_path[0].path_[j].y_;
-                if(obstacleCheck(ref_x_, ref_y_, ref_theta_, one_node.x_, one_node.y_)) {
-                    one_path.path_.clear();
-                    break;
-                }
                 one_path.path_.push_back(one_node);
             }
             if(one_path.path_.size() == 0) continue;
             one_path.length_ = s + part_of_path[0].length_;
             paths.push_back(one_path);
+            //cout << "test2: " << paths.size() << endl;
         }
     }
+
+    //cout << "test3: " << paths.size() << endl;
 
     return paths;
 }
@@ -281,10 +288,23 @@ void GeneratePaths::pathsToWorld(double x, double y, double theta, vector<Path>&
 void GeneratePaths::addThePaths(vector<Path> paths) {
     for(int i = 0; i < paths.size(); i++) {
         paths_.push_back(paths[i]);
+
+        // Path one_path;
+        // Node one_node;
+        // for(int j = 0; j < paths[i].path_.size(); j++) {
+        //     one_node.x_ = paths[i].path_[j].x_;
+        //     one_node.y_ = paths[i].path_[j].y_;
+        //     one_path.path_.push_back(one_node);
+        //     one_path.length_ = paths[i].length_;
+        // }
+        // paths_.push_back(one_path);
     }
 }
 
 bool GeneratePaths::obstacleCheck(double ref_x, double ref_y, double ref_theta, double x, double y) {
+    if(ref_map_.data.size() == 0) {
+        return true;
+    }
     int mx;
     int my;
     double x0;
