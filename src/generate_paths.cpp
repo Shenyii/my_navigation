@@ -25,7 +25,7 @@ Path GeneratePaths::generatePaths(double start_x, double start_y, double goal_x,
     pathsToWorld(start_x, start_y, theta, paths);
     addThePaths(paths);
 
-    displayThePath(paths_);
+    //displayThePath(paths_);
 
     return bestPath();
 }
@@ -54,7 +54,7 @@ Path GeneratePaths::generatePaths(double start_x, double start_y, double theta, 
     pathsToWorld(start_x, start_y, theta, paths);
     addThePaths(paths);
 
-    displayThePath(paths_);
+    //displayThePath(paths_);
 
     return bestPath();
 }
