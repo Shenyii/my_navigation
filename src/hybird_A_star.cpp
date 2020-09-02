@@ -8,25 +8,11 @@ HybirdAStar::HybirdAStar()
     pub_tree_ = nh_.advertise<sensor_msgs::PointCloud>("/tree", 3);
     pub_path_ = nh_.advertise<nav_msgs::Path>("/own_path", 3);
     extend_dist_ = 0.5;
-    w_seq_.push_back(20);
-    w_seq_.push_back(10);
-    w_seq_.push_back(5);
-    w_seq_.push_back(0);
-    w_seq_.push_back(-5);
-    w_seq_.push_back(-10);
-    w_seq_.push_back(-20);
     ros::Duration(1).sleep();
 
     while(ros::ok()) {
         ros::spin();
     }
-
-    ///////////////////////
-    int mx;
-    int my;
-    worldToMap(-6, -5, mx, my);
-    cout << mx << ", " << my << endl;
-    ///////////////////////
 }
 
 HybirdAStar::~HybirdAStar() {}
@@ -78,21 +64,6 @@ void HybirdAStar::worldToMap(double wx, double wy, int& mx, int& my) {
     my = (wy - ori_map_.info.origin.position.y) / ori_map_.info.resolution;
 }
 
-bool HybirdAStar::nodeEquality(Node* node1, Node* node2) {
-    int mx1;
-    int my1;
-    int mx2;
-    int my2;
-    worldToMap(node1->x_, node1->y_, mx1, my1);
-    worldToMap(node2->x_, node2->y_, mx2, my2);
-    if((mx1 == mx2) && (my1 == my2)) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
 bool HybirdAStar::searchThePath() {
     //generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
     //generate_paths_.generatePaths(start_x_, start_y_, start_theta_, goal_x_, goal_y_, ori_map_.info.resolution);
@@ -103,6 +74,9 @@ bool HybirdAStar::searchThePath() {
         one_path_node = new PathNode(path, 0, tree_[0]);
         tree_.push_back(one_path_node);
         displayTheTree();
+        if(findPath() == 1) {
+            return true;
+        }
         return true;
     }
     extendTreeRoot();
@@ -121,18 +95,6 @@ bool HybirdAStar::searchThePath() {
     }
 
     return false;
-}
-
-bool HybirdAStar::nodeObstacleCheck(Node* node) {
-    int mx;
-    int my;
-    worldToMap(node->x_, node->y_, mx, my);
-    if(ori_map_.data[mx + my * ori_map_.info.width] < obstacle_threshold_) {
-        return false;
-    }
-    else {
-        return true;
-    }
 }
 
 bool HybirdAStar::nodeObstacleCheck(double x, double y) {
@@ -264,47 +226,18 @@ int HybirdAStar::findPath() {
     int y1;
     worldToMap(tree_[tree_.size() - 1]->x_, tree_[tree_.size() - 1]->y_, x0, y0);
     worldToMap(goal_x_, goal_y_, x1, y1);
-    if((x0 == x1) && (y0 == y1)) {
+    if(abs(x0 - x1) < 2 && abs(y0 - y1) < 2) {
         find_path_flag_ = true;
+        displayThePath();
         return 1;
     }
     return 0;
 }
 
-double HybirdAStar::deltaAngle(double angle0, double angle1) {
-    double ans;
-    ans = angle1 - angle0;
-    ans = ans < -PI ? ans + 2 * PI : ans;
-    ans = ans > PI ? ans - 2 * PI : ans;
-
-    return ans;
-}
-
-double HybirdAStar::vectorProgection(double base_x, double base_y, double x, double y) {
-    return (base_x * x + base_y * y) / hypot(base_x, base_y);
-}
-
-bool HybirdAStar::findPathCheck(double x, double y) {
-    int x0;
-    int y0;
-    int x1;
-    int y1;
-    worldToMap(x, y, x0, y0);
-    worldToMap(goal_x_, goal_y_, x1, y1);
-    if((x0 == x1) && (y0 == y1)) {
-        find_path_flag_ = true;
-        return true;
-    }
-    return false;
-}
-
 void HybirdAStar::displayTheTree() {
-    cout << "tree size = " << tree_.size() << endl;
-    cout << "open list size = " << open_list_.size() << endl;
     sensor_msgs::PointCloud points;
     points.header.frame_id = "map";
     for(int i = 1; i < tree_.size(); i++) {
-        //cout << tree_[i]->x_ << ", " << tree_[i]->y_ << endl;
         for(int j = 0; j < tree_[i]->path_.path_.size(); j++) {
             geometry_msgs::Point32 point;
             point.x = tree_[i]->path_.path_[j].x_;
@@ -320,17 +253,21 @@ void HybirdAStar::displayTheTree() {
 void HybirdAStar::displayThePath() {
     nav_msgs::Path path;
     path.header.frame_id = "map";
+    geometry_msgs::PoseStamped pose;
+    pose.header.frame_id = "map";
+    PathNode* one_path_node = tree_[tree_.size() - 1];
+    while(one_path_node != NULL) {
+        for(int i = one_path_node->path_.path_.size() - 1; i >= 0; i--) {
+            pose.pose.position.x = one_path_node->path_.path_[i].x_;
+            pose.pose.position.y = one_path_node->path_.path_[i].y_;
+            pose.pose.position.z = 0;
+            path.poses.push_back(pose);
+        }
+        one_path_node = one_path_node->father_PathNode_;
+    }
 
     pub_path_.publish(path);
     cout << "display the path." << endl;
-}
-
-int HybirdAStar::bestSearchNode() {
-    int index;
-    double value = 9999999999;
-    for(int i = 0; i < open_list_.size(); i++) {
-    }
-    return index;
 }
 
 void HybirdAStar::add2Openlist(PathNode* path_node) {

@@ -62,10 +62,6 @@ bool pathNodeLess(PathNode* path_node1, PathNode* path_node2) {
     return path_node1->heuristics_value_ < path_node2->heuristics_value_;
 };
 
-// bool operator<=(PathNode* path_node) {
-//     return heuristics_value_ < path_node->heuristics_value_;
-// };
-
 class HybirdAStar {
 public:
     HybirdAStar();
@@ -94,25 +90,19 @@ private:
     vector<PathNode*> open_list_;
     int obstacle_threshold_;
     double extend_dist_;
-    vector<double> w_seq_;
     bool find_path_flag_;
+
     GeneratePaths generate_paths_;
 
     void worldToMap(double wx, double wy, int& mx, int& my);
-    bool nodeEquality(Node* node1, Node* node2);
     bool searchThePath();
-    bool nodeObstacleCheck(Node* node);
     bool nodeObstacleCheck(double x, double y);
     void extendTree();
     void extendTreeRoot();
     int beInList(PathNode* path_node, vector<PathNode*> tree);
     int findPath();
-    double deltaAngle(double angle0, double angle1);
-    double vectorProgection(double base_x, double base_y, double x, double y);
-    bool findPathCheck(double x, double y);
     void displayTheTree();
     void displayThePath();
-    int bestSearchNode();
     void add2Openlist(PathNode* path_node);
 };
 
