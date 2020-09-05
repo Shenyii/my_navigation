@@ -14,5 +14,6 @@
         "sstream": "cpp",
         "ostream": "cpp",
         "core": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -29,6 +29,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
 )
 
+find_package(osqp REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -217,6 +219,7 @@ add_library(informed_rrt_lib src/informed_rrt.cpp src/node.cpp)
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(hybird_A_star src/hybird_A_star.cpp src/generate_paths.cpp)
+add_executable(hybird_A_star src/hybird_A_star.cpp src/generate_paths.cpp src/opt_quintic_curve.cpp)
 target_link_libraries(hybird_A_star ${catkin_LIBRARIES})
+target_link_libraries(hybird_A_star PRIVATE osqp::osqpstatic)
 add_dependencies(hybird_A_star my_navigation_gencpp)

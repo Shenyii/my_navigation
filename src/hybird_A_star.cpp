@@ -57,6 +57,8 @@ void HybirdAStar::subGoalPose(geometry_msgs::PoseStamped goal_pose) {
     }
 
     displayTheTree();
+
+    opt_quintic_curve_.optSolveQuinticCurve2(start_x_, start_y_, start_theta_, goal_x_, goal_y_, goal_theta_);
 }
 
 void HybirdAStar::worldToMap(double wx, double wy, int& mx, int& my) {
@@ -67,7 +69,6 @@ void HybirdAStar::worldToMap(double wx, double wy, int& mx, int& my) {
 bool HybirdAStar::searchThePath() {
     //generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
     //generate_paths_.generatePaths(start_x_, start_y_, start_theta_, goal_x_, goal_y_, ori_map_.info.resolution);
-    cout << "test: " << tree_.size() << endl;
     Path path = generate_paths_.generatePaths(start_x_, start_y_, goal_x_, goal_y_, ori_map_.info.resolution);
     if(path.path_.size() != 0) {
         PathNode* one_path_node;

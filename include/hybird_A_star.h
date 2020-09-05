@@ -13,6 +13,7 @@
 #include <nav_msgs/Path.h>
 
 #include "generate_paths.h"
+#include "opt_quintic_curve.h"
 
 #define PI 3.14159265
 
@@ -93,6 +94,8 @@ private:
     bool find_path_flag_;
 
     GeneratePaths generate_paths_;
+
+    OptQuinticCurve opt_quintic_curve_;
 
     void worldToMap(double wx, double wy, int& mx, int& my);
     bool searchThePath();
