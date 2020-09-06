@@ -221,5 +221,5 @@ add_library(informed_rrt_lib src/informed_rrt.cpp src/node.cpp)
 
 add_executable(hybird_A_star src/hybird_A_star.cpp src/generate_paths.cpp src/opt_quintic_curve.cpp)
 target_link_libraries(hybird_A_star ${catkin_LIBRARIES})
-target_link_libraries(hybird_A_star PRIVATE osqp::osqpstatic)
-add_dependencies(hybird_A_star my_navigation_gencpp)
+target_link_libraries(hybird_A_star PRIVATE osqp::osqp)
+#add_dependencies(hybird_A_star my_navigation_gencpp)

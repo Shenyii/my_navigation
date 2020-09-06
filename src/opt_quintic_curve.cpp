@@ -147,18 +147,21 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     M_qc(3, 0) = 0; M_qc(3, 1) = 1;   M_qc(3, 2) = 2 * tf_;     M_qc(3, 3) = 3 * pow(tf_, 2); M_qc(3, 4) = 4 * pow(tf_, 3);  M_qc(3, 5) = 5 * pow(tf_, 4);
     M_qc(4, 0) = 0; M_qc(4, 1) = 0;   M_qc(4, 2) = 2;           M_qc(4, 3) = 0;               M_qc(4, 4) = 0;                M_qc(4, 5) = 0;
     M_qc(5, 0) = 0; M_qc(5, 1) = 0;   M_qc(5, 2) = 2;           M_qc(5, 3) = 6 * tf_;         M_qc(5, 4) = 12 * pow(tf_, 2); M_qc(5, 5) = 20 * pow(tf_, 3);
-    Matrix<double, 4, 12> A;
+    Matrix<double, 5, 12> A;
     A.block(0, 0, 2, 6) = M_qc.block(0, 0, 2, 6);
     A.block(2, 6, 2, 6) = M_qc.block(0, 0, 2, 6);
-    Matrix<double, 4, 1> lb;
-    Matrix<double, 4, 1> ub;
+    A.block(4, 0, 1, 6) = M_qc.block(2, 0, 1, 6) * sin(start_theta);
+    A.block(4, 6, 1, 6) = M_qc.block(2, 0, 1, 6) * (-cos(start_theta));
+    Matrix<double, 5, 1> lb;
+    Matrix<double, 5, 1> ub;
     lb(0 ,0) = start_x; ub(0, 0) = start_x + 0.0001;
     lb(1 ,0) = goal_x;  ub(1, 0) = goal_x + 0.0001;
     lb(2 ,0) = start_y; ub(2, 0) = start_y + 0.0001;
     lb(3 ,0) = goal_y;  ub(3, 0) = goal_y + 0.0001;
+    lb(4 ,0) = -0.1;    ub(4, 0) = 0.1;
+
     Matrix<double, Dynamic, 1> curve_param = solveProblem(H, g, A, lb, ub);
     
-
     Matrix<double, 6, 1> x_param;
     Matrix<double, 6, 1> y_param;
     x_param.block(0, 0, 6, 1) = curve_param.block(0, 0, 6, 1);
