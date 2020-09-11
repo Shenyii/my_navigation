@@ -3,7 +3,7 @@
 OptQuinticCurve::OptQuinticCurve() {
     cout << "init the opt quintic curve." << endl;
     tf_ = 2;
-    min_v_ = 1;
+    min_v_ = 0.5;
     pub_points_ = nh_.advertise<sensor_msgs::PointCloud>("/quintic_curve", 3);
 }
 
@@ -135,7 +135,7 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     M1 = M2 * M2.transpose();
     H.block(0, 0, 6, 6) = M1;
     H.block(6, 6, 6, 6) = M1;
-    cout << H << endl;
+    //cout << H << endl;
     Matrix<double, 12, 1> g;
     g.setZero();
     
@@ -147,18 +147,42 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     M_qc(3, 0) = 0; M_qc(3, 1) = 1;   M_qc(3, 2) = 2 * tf_;     M_qc(3, 3) = 3 * pow(tf_, 2); M_qc(3, 4) = 4 * pow(tf_, 3);  M_qc(3, 5) = 5 * pow(tf_, 4);
     M_qc(4, 0) = 0; M_qc(4, 1) = 0;   M_qc(4, 2) = 2;           M_qc(4, 3) = 0;               M_qc(4, 4) = 0;                M_qc(4, 5) = 0;
     M_qc(5, 0) = 0; M_qc(5, 1) = 0;   M_qc(5, 2) = 2;           M_qc(5, 3) = 6 * tf_;         M_qc(5, 4) = 12 * pow(tf_, 2); M_qc(5, 5) = 20 * pow(tf_, 3);
-    Matrix<double, 5, 12> A;
+    Matrix<double, 10, 12> A;
+    A.setZero();
     A.block(0, 0, 2, 6) = M_qc.block(0, 0, 2, 6);
     A.block(2, 6, 2, 6) = M_qc.block(0, 0, 2, 6);
     A.block(4, 0, 1, 6) = M_qc.block(2, 0, 1, 6) * sin(start_theta);
     A.block(4, 6, 1, 6) = M_qc.block(2, 0, 1, 6) * (-cos(start_theta));
-    Matrix<double, 5, 1> lb;
-    Matrix<double, 5, 1> ub;
-    lb(0 ,0) = start_x; ub(0, 0) = start_x + 0.0001;
-    lb(1 ,0) = goal_x;  ub(1, 0) = goal_x + 0.0001;
-    lb(2 ,0) = start_y; ub(2, 0) = start_y + 0.0001;
-    lb(3 ,0) = goal_y;  ub(3, 0) = goal_y + 0.0001;
-    lb(4 ,0) = -0.1;    ub(4, 0) = 0.1;
+    A.block(5, 0, 1, 6) = M_qc.block(3, 0, 1, 6) * sin(goal_theta);
+    A.block(5, 6, 1, 6) = M_qc.block(3, 0, 1, 6) * (-cos(goal_theta));
+    A.block(6, 0, 1, 6) = M_qc.block(2, 0,1, 6);
+    A.block(7, 0, 1, 6) = M_qc.block(3, 0,1, 6);
+    double t = 0.1;
+    A.block(8, 0, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
+    A.block(9, 6, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
+    cout << A << endl;
+    Matrix<double, 10, 1> lb;
+    Matrix<double, 10, 1> ub;
+    lb(0 ,0) = start_x - 0.0001; ub(0, 0) = start_x + 0.0001;
+    lb(1 ,0) = goal_x - 0.0001;  ub(1, 0) = goal_x + 0.0001;
+    lb(2 ,0) = start_y - 0.0001; ub(2, 0) = start_y + 0.0001;
+    lb(3 ,0) = goal_y - 0.0001;  ub(3, 0) = goal_y + 0.0001;
+    lb(4 ,0) = -0.001;    ub(4, 0) = 0.001;
+    lb(5 ,0) = -0.001;    ub(5, 0) = 0.001;
+    if(fabs(start_theta) > PI / 2) {
+        lb(6, 0) = -100; ub(6, 0) = min_v_ * cos(start_theta);
+    }
+    else {
+        lb(6 ,0) = min_v_ * cos(start_theta);    ub(6, 0) = 100;
+    }
+    if(fabs(goal_theta) > PI / 2) {
+        lb(7, 0) = -100; ub(7, 0) = min_v_ * cos(goal_theta);
+    }
+    else {
+        lb(7 ,0) = min_v_ * cos(goal_theta);    ub(7, 0) = 100;
+    }
+    lb(8, 0) = -0.1; ub(8, 0) = 0.1;
+    lb(9, 0) = -0.1; ub(9, 0) = 0.1;
 
     Matrix<double, Dynamic, 1> curve_param = solveProblem(H, g, A, lb, ub);
     

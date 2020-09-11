@@ -223,3 +223,7 @@ add_executable(hybird_A_star src/hybird_A_star.cpp src/generate_paths.cpp src/op
 target_link_libraries(hybird_A_star ${catkin_LIBRARIES})
 target_link_libraries(hybird_A_star PRIVATE osqp::osqp)
 #add_dependencies(hybird_A_star my_navigation_gencpp)
+
+add_executable(opt_bezier_test src/opt_bezier_curve.cpp)
+target_link_libraries(opt_bezier_test ${catkin_LIBRARIES})
+target_link_libraries(opt_bezier_test PRIVATE osqp::osqp)
