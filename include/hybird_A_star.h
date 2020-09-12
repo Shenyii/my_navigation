@@ -14,6 +14,7 @@
 
 #include "generate_paths.h"
 #include "opt_quintic_curve.h"
+#include "opt_bezier_curve.h"
 
 #define PI 3.14159265
 
@@ -95,6 +96,7 @@ private:
 
     GeneratePaths generate_paths_;
 
+    OptBezierCurve opt_bezier_curve_;
     OptQuinticCurve opt_quintic_curve_;
 
     void worldToMap(double wx, double wy, int& mx, int& my);

@@ -3,7 +3,9 @@
 OptQuinticCurve::OptQuinticCurve() {
     cout << "init the opt quintic curve." << endl;
     tf_ = 2;
-    min_v_ = 0.5;
+    min_v_ = 0.1;
+    max_acc_ = 0.5;
+    acc_constraint_num_ = 3;
     pub_points_ = nh_.advertise<sensor_msgs::PointCloud>("/quintic_curve", 3);
 }
 
@@ -147,7 +149,8 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     M_qc(3, 0) = 0; M_qc(3, 1) = 1;   M_qc(3, 2) = 2 * tf_;     M_qc(3, 3) = 3 * pow(tf_, 2); M_qc(3, 4) = 4 * pow(tf_, 3);  M_qc(3, 5) = 5 * pow(tf_, 4);
     M_qc(4, 0) = 0; M_qc(4, 1) = 0;   M_qc(4, 2) = 2;           M_qc(4, 3) = 0;               M_qc(4, 4) = 0;                M_qc(4, 5) = 0;
     M_qc(5, 0) = 0; M_qc(5, 1) = 0;   M_qc(5, 2) = 2;           M_qc(5, 3) = 6 * tf_;         M_qc(5, 4) = 12 * pow(tf_, 2); M_qc(5, 5) = 20 * pow(tf_, 3);
-    Matrix<double, 10, 12> A;
+    Matrix<double, Dynamic, Dynamic> A;
+    A.resize(8 + 2 * acc_constraint_num_, 12);
     A.setZero();
     A.block(0, 0, 2, 6) = M_qc.block(0, 0, 2, 6);
     A.block(2, 6, 2, 6) = M_qc.block(0, 0, 2, 6);
@@ -157,12 +160,16 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     A.block(5, 6, 1, 6) = M_qc.block(3, 0, 1, 6) * (-cos(goal_theta));
     A.block(6, 0, 1, 6) = M_qc.block(2, 0,1, 6);
     A.block(7, 0, 1, 6) = M_qc.block(3, 0,1, 6);
-    double t = 0.1;
-    A.block(8, 0, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
-    A.block(9, 6, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
+    for(int i = 0; i < acc_constraint_num_; i++) {
+        double t = i * tf_ / (acc_constraint_num_ - 1);
+        A.block(8 + 2 * i, 0, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
+        A.block(9 + 2 * i, 6, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
+    }
     cout << A << endl;
-    Matrix<double, 10, 1> lb;
-    Matrix<double, 10, 1> ub;
+    Matrix<double, Dynamic, Dynamic> lb;
+    Matrix<double, Dynamic, Dynamic> ub;
+    lb.resize(8 + 2 * acc_constraint_num_, 1);
+    ub.resize(8 + 2 * acc_constraint_num_, 1);
     lb(0 ,0) = start_x - 0.0001; ub(0, 0) = start_x + 0.0001;
     lb(1 ,0) = goal_x - 0.0001;  ub(1, 0) = goal_x + 0.0001;
     lb(2 ,0) = start_y - 0.0001; ub(2, 0) = start_y + 0.0001;
@@ -181,8 +188,10 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     else {
         lb(7 ,0) = min_v_ * cos(goal_theta);    ub(7, 0) = 100;
     }
-    lb(8, 0) = -0.1; ub(8, 0) = 0.1;
-    lb(9, 0) = -0.1; ub(9, 0) = 0.1;
+    for(int i = 0; i < acc_constraint_num_; i++) {
+        lb(8 + 2 * i, 0) = -max_acc_; ub(8 + 2 * i, 0) = max_acc_;
+        lb(9 + 2 * i, 0) = -max_acc_; ub(9 + 2 * i, 0) = max_acc_;
+    }
 
     Matrix<double, Dynamic, 1> curve_param = solveProblem(H, g, A, lb, ub);
     

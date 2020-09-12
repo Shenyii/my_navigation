@@ -36,6 +36,8 @@ private:
     double goal_theta_;
     double tf_;
     double min_v_;
+    double max_acc_;
+    int acc_constraint_num_;
 
     ros::NodeHandle nh_;
     sensor_msgs::PointCloud points_;

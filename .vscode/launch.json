@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/shen/ros_test/devel/lib/my_navigation/hybird_A_star",
+            "program": "/home/shen/ros_test/devel/lib/my_navigation/opt_bezier_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

@@ -58,6 +58,7 @@ void HybirdAStar::subGoalPose(geometry_msgs::PoseStamped goal_pose) {
 
     displayTheTree();
 
+    //opt_bezier_curve_.getOptBezierCurve(start_x_, start_y_, start_theta_, goal_x_, goal_y_, goal_theta_);
     opt_quintic_curve_.optSolveQuinticCurve2(start_x_, start_y_, start_theta_, goal_x_, goal_y_, goal_theta_);
 }
 
