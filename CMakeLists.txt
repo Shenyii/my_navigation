@@ -224,3 +224,7 @@ target_link_libraries(hybird_A_star ${catkin_LIBRARIES})
 target_link_libraries(hybird_A_star PRIVATE osqp::osqp)
 #add_dependencies(hybird_A_star my_navigation_gencpp)
 
+add_executable(A_star src/A_star.cpp src/opt_quintic_curve.cpp src/opt_bezier_curve.cpp)
+target_link_libraries(A_star ${catkin_LIBRARIES})
+target_link_libraries(A_star PRIVATE osqp::osqp)
+

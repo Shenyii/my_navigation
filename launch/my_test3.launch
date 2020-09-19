@@ -1,0 +1,14 @@
+<launch>
+    <!--include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch"/-->
+
+    <!--include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch"/-->
+
+    <!--node pkg="path_track" type="dwa_path_track2" name="dwa_path_track2"/-->
+  
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find my_navigation)/maps/my_map.yaml"/>
+
+    <node pkg="rviz" type="rviz" name="rviz" output="screen"/>
+
+    <node pkg="my_navigation" type="A_star" name="A_star" output="screen"/>
+
+</launch>

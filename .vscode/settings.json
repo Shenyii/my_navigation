@@ -13,7 +13,8 @@
         "system_error": "cpp",
         "sstream": "cpp",
         "ostream": "cpp",
-        "core": "cpp"
+        "core": "cpp",
+        "unordered_set": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

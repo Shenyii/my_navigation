@@ -1,11 +1,11 @@
 #include "opt_bezier_curve.h"
 
 OptBezierCurve::OptBezierCurve() {
-    bezier_n_ = 20;
-    min_v_ = 0.5;
+    bezier_n_ = 5;
+    min_v_ = 0.1;
     max_v_ = 100;
     min_acc_ = -0.5;
-    max_acc_ = 0.5;
+    max_acc_ = 1;
     pub_points_ = nh_.advertise<sensor_msgs::PointCloud>("/bezier_curve", 3);
 }
 
@@ -20,6 +20,9 @@ bool OptBezierCurve::getOptBezierCurve(double start_x, double start_y, double st
     //H.setZero();
 
     Matrix<double, Dynamic, Dynamic> P = solveProblem(H, g, A, lb, ub);
+    if(P.rows() == 0) {
+        return false;
+    }
     //cout << P.transpose() << endl;
     //cout << A << endl;
     for(int i = 0; i < bezier_n_ + 1; i++) {
@@ -62,10 +65,14 @@ bool OptBezierCurve::getOptBezierCurve(double start_x, double start_y, double st
         double ax0 = 0;
         double ay0 = 1;
         int i = t / 0.02;
+        double vx0 = (points.points[i + 1].x - points.points[i].x) / 0.02;
+        double vy0 = (points.points[i + 1].y - points.points[i].y) / 0.02;
         ax0 = (points.points[i + 2].x - points.points[i + 1].x * 2 + points.points[i].x) / 0.0004;
         ay0 = (points.points[i + 2].y - points.points[i + 1].y * 2 + points.points[i].y) / 0.0004;
-        cout << "acc: " << ax << ", " << ay << ", " << ax0 << ", " << ay0 << endl;
+        cout << "vel: " << vx0 << ", " << vy0 << ", acc: " << ax << ", " << ay << ", " << ax0 << ", " << ay0 << endl;
     }
+
+    return true;
 }
 
 void OptBezierCurve::setMatrixHg(Matrix<double, Dynamic, Dynamic>& H, Matrix<double, Dynamic, Dynamic>& g) {
@@ -243,6 +250,12 @@ Matrix<double, Dynamic, 1> OptBezierCurve::solveProblem(Matrix<double, Dynamic, 
 
     // Solve Problem
     osqp_solve(work);
+
+    if(work->info->status_val != 1) {
+        cout << "Can't solve the problam." << endl;
+        ans.resize(0, 1);
+        return ans;
+    }
 
     for(int i = 0; i < ans.rows(); i++) {
         ans(i, 0) = work->solution->x[i];

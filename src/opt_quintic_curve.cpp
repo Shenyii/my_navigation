@@ -3,9 +3,9 @@
 OptQuinticCurve::OptQuinticCurve() {
     cout << "init the opt quintic curve." << endl;
     tf_ = 2;
-    min_v_ = 0.1;
+    min_v_ = 0.3;
     max_acc_ = 0.5;
-    acc_constraint_num_ = 3;
+    acc_constraint_num_ = 7;
     pub_points_ = nh_.advertise<sensor_msgs::PointCloud>("/quintic_curve", 3);
 }
 
@@ -91,6 +91,10 @@ void OptQuinticCurve::optSolveQuinticCurve(double start_x, double start_y, doubl
     //Matrix<double, 6, 1> M5 = -H.inverse() * g;
     Matrix<double, 6, 1> M5 = solveProblem(H, g, AA, lb, ub);
 
+    if(M5.rows() == 0) {
+        return;
+    }
+
     Matrix<double, 6, 2> M_print;
     M_print.block(0, 0, 6, 1) = M5;
     M_print.block(0, 1, 6, 1) = -H.inverse() * g;
@@ -126,17 +130,14 @@ void OptQuinticCurve::optSolveQuinticCurve(double start_x, double start_y, doubl
 void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, double start_theta, double goal_x, double goal_y, double goal_theta) {
     Matrix<double, 12, 12> H;
     H.setZero();
-    Matrix<double, 6, 6> M1;
-    Matrix<double, 6, 1> M2;
-    M2(0, 0) = 0;
-    M2(1, 0) = 0;
-    M2(2, 0) = 2;
-    M2(3, 0) = 6 * tf_;
-    M2(4, 0) = 12 * pow(tf_, 2);
-    M2(5, 0) = 20 * pow(tf_, 3);
-    M1 = M2 * M2.transpose();
-    H.block(0, 0, 6, 6) = M1;
-    H.block(6, 6, 6, 6) = M1;
+    Matrix<double, 4, 4> M1;
+    M1.setZero();
+    M1(0, 0) = 4. * tf_;          M1(0, 1) = 6. * pow(tf_, 2);  M1(0, 2) = 8. * pow(tf_, 3);    M1(0, 3) = 10. * pow(tf_, 4);
+    M1(1, 0) = 6. * pow(tf_, 2);  M1(1, 1) = 12. * pow(tf_, 3); M1(1, 2) = 18. * pow(tf_, 4);   M1(1, 3) = 24. * pow(tf_, 5); 
+    M1(2, 0) = 8. * pow(tf_, 3);  M1(2, 1) = 18. * pow(tf_, 4); M1(2, 2) = 28.8 * pow(tf_, 5);  M1(2, 3) = 40. * pow(tf_, 6); 
+    M1(3, 0) = 10. * pow(tf_, 4); M1(3, 1) = 24. * pow(tf_, 5); M1(3, 2) = 40. * pow(tf_, 6);   M1(3, 3) = 400. / 7 * pow(tf_, 7); 
+    H.block(2, 2, 4, 4) = M1;
+    H.block(8, 8, 4, 4) = M1;
     //cout << H << endl;
     Matrix<double, 12, 1> g;
     g.setZero();
@@ -194,11 +195,23 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     }
 
     Matrix<double, Dynamic, 1> curve_param = solveProblem(H, g, A, lb, ub);
+
+    if(curve_param.rows() == 0) {
+        return;
+    }
     
     Matrix<double, 6, 1> x_param;
     Matrix<double, 6, 1> y_param;
     x_param.block(0, 0, 6, 1) = curve_param.block(0, 0, 6, 1);
     y_param.block(0, 0, 6, 1) = curve_param.block(6, 0, 6 ,1);
+
+    for(double t = 0; t <= tf_; t+=0.1) {
+        double vx = x_param(1, 0) + 2*x_param(2, 0)*t + 3*x_param(3, 0)*pow(t,2) + 4*x_param(4, 0)*pow(t, 3) + 5*x_param(5, 0)*pow(t, 4);
+        double vy = y_param(1, 0) + 2*y_param(2, 0)*t + 3*y_param(3, 0)*pow(t,2) + 4*y_param(4, 0)*pow(t, 3) + 5*y_param(5, 0)*pow(t, 4);
+        double ax = 2 * x_param(2, 0) + 6 * t * x_param(3, 0) + 12 * pow(t, 2) * x_param(4, 0) + 20 * pow(t, 3) * x_param(5, 0);
+        double ay = 2 * y_param(2, 0) + 6 * t * y_param(3, 0) + 12 * pow(t, 2) * y_param(4, 0) + 20 * pow(t, 3) * y_param(5, 0);
+        cout << "vel: " << vx << ", " << vy << ", " << "acc: " << ax << ", " << ay << endl;
+    }
 
     points_.header.frame_id = "map";
     points_.points.clear();
@@ -269,6 +282,12 @@ Matrix<double, Dynamic, 1> OptQuinticCurve::solveProblem(Matrix<double, Dynamic,
 
     // Solve Problem
     osqp_solve(work);
+
+    if(work->info->status_val != 1) {
+        cout << "Can't solve the problam." << endl;
+        ans.resize(0, 1);
+        return ans;
+    }
 
     for(int i = 0; i < ans.rows(); i++) {
         ans(i, 0) = work->solution->x[i];
