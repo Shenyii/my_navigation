@@ -42,15 +42,16 @@ bool AStar::searchThePath() {
     }
     close_list_.clear();
     open_list_.clear();
-    Node* new_node = new Node(start_x_, goal_x_, 0, 0, NULL);
+    Node* new_node = new Node(start_x_, start_y_, 0, 0, NULL);
     close_list_.push_back(new_node);
     open_list_.push_back(new_node);
-    while(beInList(goal_x_, goal_y_, close_list_) == -1 && find_path_flag_ == 0 && ros::ok()) {
+    while(beInList(goal_x_, goal_y_, close_list_) == -1 && find_path_flag_ == 0 && open_list_.size() > 0 && ros::ok()) {
         extendCloseList();
-        displayCloseList();
-        getchar();
+        //displayCloseList();
+        //getchar();
     }
     if(find_path_flag_ == 1) {
+        getThePath();
         cout << "find the path" << endl;
     }
     else {
@@ -72,94 +73,114 @@ bool AStar::nodeObstacleCheck(double x, double y) {
 }
 
 void AStar::extendCloseList() {
-    cout << "extend close list" << endl;
+    //cout << "extend close list" << endl;
     sort(open_list_.begin(), open_list_.end(), nodeLess);
     Node* father_node = open_list_[0];
     open_list_.erase(open_list_.begin(), open_list_.begin() + 1);
     int index;
 
-    index = beInList(father_node->x_ + extend_dist_, father_node->y_, close_list_);
-    if(index == -1) {
-        double dist = father_node->distance_ + extend_dist_;
-        double value = dist + fabs(father_node->x_ + extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
-        Node* new_node = new Node(father_node->x_ + extend_dist_, father_node->y_, dist, value, father_node);
-        close_list_.push_back(new_node);
-        open_list_.push_back(new_node);
-        if(findPathCheck() == 1) {
-            return;
+    if(nodeObstacleCheck(father_node->x_ + extend_dist_, father_node->y_) == false) {
+        index = beInList(father_node->x_ + extend_dist_, father_node->y_, close_list_);
+        if(index == -1) {
+            double dist = father_node->distance_ + extend_dist_;
+            //double value = dist + fabs(father_node->x_ + extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
+            double value = dist + hypot(father_node->x_ + extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+            //double value = hypot(father_node->x_ + extend_dist_ - start_x_, father_node->y_ - start_y_) + hypot(father_node->x_ + extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+            Node* new_node = new Node(father_node->x_ + extend_dist_, father_node->y_, dist, value, father_node);
+            close_list_.push_back(new_node);
+            open_list_.push_back(new_node);
+            if(findPathCheck() == 1) {
+                return;
+            }
         }
-    }
-    else {
-        double dist = father_node->distance_ + extend_dist_;
-        if(dist > close_list_[index]->distance_) {
-            return;
+        else {
+            double dist = father_node->distance_ + extend_dist_;
+            if(dist < close_list_[index]->distance_) {
+                close_list_[index]->distance_ = dist;
+                //close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ + extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
+                close_list_[index]->heuristics_value_ = dist + hypot(father_node->x_ + extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+                //close_list_[index]->heuristics_value_ = hypot(father_node->x_ + extend_dist_ - start_x_, father_node->y_ - start_y_) + hypot(father_node->x_ + extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+                close_list_[index]->father_node_ = father_node;
+            }
         }
-        close_list_[index]->distance_ = dist;
-        close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ + extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
-        close_list_[index]->father_node_ = father_node;
     }
 
-    index = beInList(father_node->x_ - extend_dist_, father_node->y_, close_list_);
-    if(index == -1) {
-        double dist = father_node->distance_ - extend_dist_;
-        double value = dist + fabs(father_node->x_ - extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
-        Node* new_node = new Node(father_node->x_ - extend_dist_, father_node->y_, dist, value, father_node);
-        close_list_.push_back(new_node);
-        open_list_.push_back(new_node);
-        if(findPathCheck() == 1) {
-            return;
+    if(nodeObstacleCheck(father_node->x_ - extend_dist_, father_node->y_) == false) {
+        index = beInList(father_node->x_ - extend_dist_, father_node->y_, close_list_);
+        if(index == -1) {
+            double dist = father_node->distance_ + extend_dist_;
+            //double value = dist + fabs(father_node->x_ - extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
+            double value = dist + hypot(father_node->x_ - extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+            //double value = hypot(father_node->x_ - extend_dist_ - start_x_, father_node->y_ - start_y_) + hypot(father_node->x_ - extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+            Node* new_node = new Node(father_node->x_ - extend_dist_, father_node->y_, dist, value, father_node);
+            close_list_.push_back(new_node);
+            open_list_.push_back(new_node);
+            if(findPathCheck() == 1) {
+                return;
+            }
         }
-    }
-    else {
-        double dist = father_node->distance_ - extend_dist_;
-        if(dist > close_list_[index]->distance_) {
-            return;
+        else {
+            double dist = father_node->distance_ + extend_dist_;
+            if(dist < close_list_[index]->distance_) {
+                close_list_[index]->distance_ = dist;
+                //close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ - extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
+                close_list_[index]->heuristics_value_ = dist + hypot(father_node->x_ - extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+                //close_list_[index]->heuristics_value_ = hypot(father_node->x_ - extend_dist_ - start_x_, father_node->y_ - start_y_) + hypot(father_node->x_ - extend_dist_ - goal_x_, father_node->y_ - goal_y_);
+                close_list_[index]->father_node_ = father_node;
+            }
         }
-        close_list_[index]->distance_ = dist;
-        close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ - extend_dist_ - goal_x_) + fabs(father_node->y_ - goal_y_);
-        close_list_[index]->father_node_ = father_node;
     }
 
-    index = beInList(father_node->x_, father_node->y_ + extend_dist_, close_list_);
-    if(index == -1) {
-        double dist = father_node->distance_ + extend_dist_;
-        double value = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ + extend_dist_ - goal_y_);
-        Node* new_node = new Node(father_node->x_, father_node->y_ + extend_dist_, dist, value, father_node);
-        close_list_.push_back(new_node);
-        open_list_.push_back(new_node);
-        if(findPathCheck() == 1) {
-            return;
+    if(nodeObstacleCheck(father_node->x_, father_node->y_ + extend_dist_) == false) {
+        index = beInList(father_node->x_, father_node->y_ + extend_dist_, close_list_);
+        if(index == -1) {
+            double dist = father_node->distance_ + extend_dist_;
+            //double value = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ + extend_dist_ - goal_y_);
+            double value = dist + hypot(father_node->x_ - goal_x_, father_node->y_ + extend_dist_ - goal_y_);
+            //double value = hypot(father_node->x_ - start_x_, father_node->y_ + extend_dist_ - start_y_) + hypot(father_node->x_ - goal_x_, father_node->y_ + extend_dist_ - goal_y_);
+            Node* new_node = new Node(father_node->x_, father_node->y_ + extend_dist_, dist, value, father_node);
+            close_list_.push_back(new_node);
+            open_list_.push_back(new_node);
+            if(findPathCheck() == 1) {
+                return;
+            }
         }
-    }
-    else {
-        double dist = father_node->distance_ + extend_dist_;
-        if(dist > close_list_[index]->distance_) {
-            return;
+        else {
+            double dist = father_node->distance_ + extend_dist_;
+            if(dist < close_list_[index]->distance_) {
+                close_list_[index]->distance_ = dist;
+                //close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ + extend_dist_ - goal_y_);
+                close_list_[index]->heuristics_value_ = dist + hypot(father_node->x_ - goal_x_, father_node->y_ + extend_dist_ - goal_y_);
+                //close_list_[index]->heuristics_value_ = hypot(father_node->x_ - start_x_, father_node->y_ + extend_dist_ - start_y_) + hypot(father_node->x_ - goal_x_, father_node->y_ + extend_dist_ - goal_y_);
+                close_list_[index]->father_node_ = father_node;
+            }
         }
-        close_list_[index]->distance_ = dist;
-        close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ + extend_dist_ - goal_y_);
-        close_list_[index]->father_node_ = father_node;
     }
 
-    index = beInList(father_node->x_, father_node->y_ - extend_dist_, close_list_);
-    if(index == -1) {
-        double dist = father_node->distance_ + extend_dist_;
-        double value = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ - extend_dist_ - goal_y_);
-        Node* new_node = new Node(father_node->x_, father_node->y_ - extend_dist_, dist, value, father_node);
-        close_list_.push_back(new_node);
-        open_list_.push_back(new_node);
-        if(findPathCheck() == 1) {
-            return;
+    if(nodeObstacleCheck(father_node->x_, father_node->y_ - extend_dist_) == false) {
+        index = beInList(father_node->x_, father_node->y_ - extend_dist_, close_list_);
+        if(index == -1) {
+            double dist = father_node->distance_ + extend_dist_;
+            //double value = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ - extend_dist_ - goal_y_);
+            double value = dist + hypot(father_node->x_ - goal_x_, father_node->y_ - extend_dist_ - goal_y_);
+            //double value = hypot(father_node->x_ - start_x_, father_node->y_ - extend_dist_ - start_y_) + hypot(father_node->x_ - goal_x_, father_node->y_ - extend_dist_ - goal_y_);
+            Node* new_node = new Node(father_node->x_, father_node->y_ - extend_dist_, dist, value, father_node);
+            close_list_.push_back(new_node);
+            open_list_.push_back(new_node);
+            if(findPathCheck() == 1) {
+                return;
+            }
         }
-    }
-    else {
-        double dist = father_node->distance_ + extend_dist_;
-        if(dist > close_list_[index]->distance_) {
-            return;
+        else {
+            double dist = father_node->distance_ + extend_dist_;
+            if(dist < close_list_[index]->distance_) {
+                close_list_[index]->distance_ = dist;
+                //close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ - extend_dist_ - goal_y_);
+                close_list_[index]->heuristics_value_ = dist + hypot(father_node->x_ - goal_x_, father_node->y_ - extend_dist_ - goal_y_);
+                //close_list_[index]->heuristics_value_ = hypot(father_node->x_ - start_x_, father_node->y_ - extend_dist_ - start_y_) + hypot(father_node->x_ - goal_x_, father_node->y_ - extend_dist_ - goal_y_);
+                close_list_[index]->father_node_ = father_node;
+            }
         }
-        close_list_[index]->distance_ = dist;
-        close_list_[index]->heuristics_value_ = dist + fabs(father_node->x_ - goal_x_) + fabs(father_node->y_ - extend_dist_ - goal_y_);
-        close_list_[index]->father_node_ = father_node;
     }
 }
 
@@ -247,9 +268,14 @@ void AStar::displayCloseList() {
     for(int i = 0; i < close_list_.size(); i++) {
         points.points[i].x = close_list_[i]->x_;
         points.points[i].y = close_list_[i]->y_;
-        points.points[i].x = 0;
+        points.points[i].z = 0;
     }
     pub_points.publish(points);
+
+    // cout << "the size of open list is: " << open_list_.size() << endl;
+    // for(int i = 0; i < open_list_.size(); i++) {
+    //     cout << open_list_[i]->x_ << ", " << open_list_[i]->y_ << ", " << open_list_[i]->distance_ << ", " << open_list_[i]->heuristics_value_ << endl;
+    // }
 }
 
 void AStar::add2Openlist(Node* node) {}

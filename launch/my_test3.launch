@@ -11,4 +11,6 @@
 
     <node pkg="my_navigation" type="A_star" name="A_star" output="screen"/>
 
+    <node pkg="my_navigation" type="opt_path" name="opt_path" output="screen"/>
+
 </launch>

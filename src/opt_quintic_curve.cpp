@@ -127,7 +127,9 @@ void OptQuinticCurve::optSolveQuinticCurve(double start_x, double start_y, doubl
     pub_points_.publish(points_);
 }
 
-void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, double start_theta, double goal_x, double goal_y, double goal_theta) {
+MyPath OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, double start_theta, double goal_x, double goal_y, double goal_theta) {
+    MyPath ans;
+
     Matrix<double, 12, 12> H;
     H.setZero();
     Matrix<double, 4, 4> M1;
@@ -166,7 +168,7 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
         A.block(8 + 2 * i, 0, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
         A.block(9 + 2 * i, 6, 1, 6) << 0, 0, 2, 6 * t, 12 * pow(t, 2), 20 * pow(t, 3);
     }
-    cout << A << endl;
+    //cout << A << endl;
     Matrix<double, Dynamic, Dynamic> lb;
     Matrix<double, Dynamic, Dynamic> ub;
     lb.resize(8 + 2 * acc_constraint_num_, 1);
@@ -194,10 +196,12 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
         lb(9 + 2 * i, 0) = -max_acc_; ub(9 + 2 * i, 0) = max_acc_;
     }
 
+    //close(1);
     Matrix<double, Dynamic, 1> curve_param = solveProblem(H, g, A, lb, ub);
+    //dup2(0, 1);
 
     if(curve_param.rows() == 0) {
-        return;
+        return ans;
     }
     
     Matrix<double, 6, 1> x_param;
@@ -205,13 +209,13 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
     x_param.block(0, 0, 6, 1) = curve_param.block(0, 0, 6, 1);
     y_param.block(0, 0, 6, 1) = curve_param.block(6, 0, 6 ,1);
 
-    for(double t = 0; t <= tf_; t+=0.1) {
-        double vx = x_param(1, 0) + 2*x_param(2, 0)*t + 3*x_param(3, 0)*pow(t,2) + 4*x_param(4, 0)*pow(t, 3) + 5*x_param(5, 0)*pow(t, 4);
-        double vy = y_param(1, 0) + 2*y_param(2, 0)*t + 3*y_param(3, 0)*pow(t,2) + 4*y_param(4, 0)*pow(t, 3) + 5*y_param(5, 0)*pow(t, 4);
-        double ax = 2 * x_param(2, 0) + 6 * t * x_param(3, 0) + 12 * pow(t, 2) * x_param(4, 0) + 20 * pow(t, 3) * x_param(5, 0);
-        double ay = 2 * y_param(2, 0) + 6 * t * y_param(3, 0) + 12 * pow(t, 2) * y_param(4, 0) + 20 * pow(t, 3) * y_param(5, 0);
-        cout << "vel: " << vx << ", " << vy << ", " << "acc: " << ax << ", " << ay << endl;
-    }
+    // for(double t = 0; t <= tf_; t+=0.1) {
+    //     double vx = x_param(1, 0) + 2*x_param(2, 0)*t + 3*x_param(3, 0)*pow(t,2) + 4*x_param(4, 0)*pow(t, 3) + 5*x_param(5, 0)*pow(t, 4);
+    //     double vy = y_param(1, 0) + 2*y_param(2, 0)*t + 3*y_param(3, 0)*pow(t,2) + 4*y_param(4, 0)*pow(t, 3) + 5*y_param(5, 0)*pow(t, 4);
+    //     double ax = 2 * x_param(2, 0) + 6 * t * x_param(3, 0) + 12 * pow(t, 2) * x_param(4, 0) + 20 * pow(t, 3) * x_param(5, 0);
+    //     double ay = 2 * y_param(2, 0) + 6 * t * y_param(3, 0) + 12 * pow(t, 2) * y_param(4, 0) + 20 * pow(t, 3) * y_param(5, 0);
+    //     cout << "vel: " << vx << ", " << vy << ", " << "acc: " << ax << ", " << ay << endl;
+    // }
 
     points_.header.frame_id = "map";
     points_.points.clear();
@@ -223,6 +227,21 @@ void OptQuinticCurve::optSolveQuinticCurve2(double start_x, double start_y, doub
         points_.points.push_back(point);
     }
     pub_points_.publish(points_);
+
+    for(double t = 0; t < tf_; t += 0.05) {
+        geometry_msgs::Point32 point;
+        point.x = x_param(0, 0) + x_param(1, 0) * t + x_param(2, 0) * pow(t, 2) + x_param(3, 0) * pow(t, 3) + x_param(4, 0) * pow(t, 4) + x_param(5, 0) * pow(t, 5);
+        point.y = y_param(0, 0) + y_param(1, 0) * t + y_param(2, 0) * pow(t, 2) + y_param(3, 0) * pow(t, 3) + y_param(4, 0) * pow(t, 4) + y_param(5, 0) * pow(t, 5);
+        point.z = 0;
+        ans.x_.push_back(point.x);
+        ans.y_.push_back(point.y);
+    }
+    double dist = 0;
+    for(int i = 1; i < ans.x_.size(); i++) {
+        dist += hypot(ans.x_[i] - ans.x_[i - 1], ans.y_[i] - ans.y_[i - 1]);
+    }
+    ans.distance_ = dist;
+    return ans;
 }
 
 Matrix<double, Dynamic, 1> OptQuinticCurve::solveProblem(Matrix<double, Dynamic, Dynamic> H, Matrix<double, Dynamic, Dynamic> g,

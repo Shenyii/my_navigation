@@ -12,9 +12,6 @@
 #include <geometry_msgs/Point32.h>
 #include <nav_msgs/Path.h>
 
-#include "opt_bezier_curve.h"
-#include "opt_quintic_curve.h"
-
 using namespace std;
 
 class Node {

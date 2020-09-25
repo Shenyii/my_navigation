@@ -13,13 +13,25 @@
 using namespace std;
 using namespace Eigen;
 
+class MyPath {
+public:
+    vector<double> x_;
+    vector<double> y_;
+    vector<double> theta_;
+    double distance_;
+
+    MyPath() {
+        distance_ = 0;
+    }
+};
+
 class OptQuinticCurve {
 public:
     OptQuinticCurve();
     ~OptQuinticCurve();
 
     void optSolveQuinticCurve(double start_x, double start_y, double start_theta, double goal_x, double goal_y, double goal_theta);
-    void optSolveQuinticCurve2(double start_x, double start_y, double start_theta, double goal_x, double goal_y, double goal_theta);
+    MyPath optSolveQuinticCurve2(double start_x, double start_y, double start_theta, double goal_x, double goal_y, double goal_theta);
 
 private:
     double ori_start_x_;
