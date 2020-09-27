@@ -53,10 +53,12 @@ private:
     nav_msgs::Path ori_path_;
     ros::Publisher pub_path_;
     ros::Publisher pub_poses_;
+    ros::Publisher pub_tree_;
 
     void subOriMap(nav_msgs::OccupancyGrid map);
     void subOriPath(nav_msgs::Path path);
     void displayPath();
+    void displayTree();
 
     vector<geometry_msgs::Pose2D> path_;
     double obstacle_threshold_;

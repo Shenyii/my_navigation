@@ -5,6 +5,7 @@ OptPath::OptPath() {
     sub_ori_path_ = nh_.subscribe("/own_path", 2, &OptPath::subOriPath, this);
     pub_path_ = nh_.advertise<nav_msgs::Path>("/opt_path", 3);
     pub_poses_ = nh_.advertise<geometry_msgs::PoseArray>("/poses", 3);
+    pub_tree_ = nh_.advertise<sensor_msgs::PointCloud>("/tree", 2);
 }
 
 OptPath::~OptPath() {}
@@ -84,30 +85,70 @@ vector<geometry_msgs::Pose2D> OptPath::optThePath() {
         for(int j = 0; j < nodes[i].size(); j++) {
             double min_dist = 99999;
             for(int k = 0; k < nodes[i - 1].size(); k++) {
+                double dist;
+                MyPath path;
                 if(nodeObstacleCheck(nodes[i][j]->x_, nodes[i][j]->y_) != 1 && nodeObstacleCheck(nodes[i - 1][k]->x_, nodes[i][j]->y_) != 1) {
-                    MyPath path = opt_path_.optSolveQuinticCurve2(nodes[i - 1][k]->x_, nodes[i - 1][k]->y_, nodes[i - 1][k]->theta_,
-                                                                  nodes[i][j]->x_, nodes[i][j]->y_, nodes[i][j]->theta_);
+                    path = opt_path_.optSolveQuinticCurve2(nodes[i - 1][k]->x_, nodes[i - 1][k]->y_, nodes[i - 1][k]->theta_,
+                                                           nodes[i][j]->x_, nodes[i][j]->y_, nodes[i][j]->theta_);
                     if(pathObstacleCheck(path) != 1) {
-                        if(min_dist > path.distance_ + nodes[i - 1][k]->distance_) {
-                            min_dist = path.distance_ + nodes[i - 1][k]->distance_;
-                            nodes[i][j]->x_list_.clear();
-                            nodes[i][j]->y_list_.clear();
-                            for(int n = 0; n < path.x_.size(); n++) {
-                                nodes[i][j]->x_list_.push_back(path.x_[n]);
-                                nodes[i][j]->y_list_.push_back(path.y_[n]);
-                            }
-                            nodes[i][j]->distance_ = min_dist;
-                            nodes[i][j]->father_node_ = nodes[i - 1][k];
-                        }
+                        dist = path.distance_ + nodes[i - 1][k]->distance_;
+                    }
+                    else {
+                        dist = 99999;
                     }
                 }
+                else {
+                    dist = 99999;
+                }
+                if(min_dist > dist) {
+                    min_dist = dist;
+                    nodes[i][j]->x_list_.clear();
+                    nodes[i][j]->y_list_.clear();
+                    for(int n = 0; n < path.x_.size(); n++) {
+                        nodes[i][j]->x_list_.push_back(path.x_[n]);
+                        nodes[i][j]->y_list_.push_back(path.y_[n]);
+                    }
+                    nodes[i][j]->distance_ = min_dist;
+                    nodes[i][j]->father_node_ = nodes[i - 1][k];
+                }
+            }
+            if(min_dist > 99998) {
+                nodes[i][j]->distance_ = min_dist;
             }
         }
     }
 
+    int index = -1;
+    double min_dist = 99999;
+    for(int i = 0; i < nodes[nodes.size() - 1].size(); i++) {
+        if(min_dist > nodes[nodes.size() - 1][i]->distance_) {
+            min_dist = nodes[nodes.size() - 1][i]->distance_;
+            index = i;
+        }
+    }
+    if(index != -1) {
+        Node* node = nodes[nodes.size() - 1][index];
+        while(node != NULL) {
+            reverse(node->x_list_.begin(), node->x_list_.end());
+            reverse(node->y_list_.begin(), node->y_list_.end());
+            for(int i = 0; i < node->x_list_.size(); i++) {
+                geometry_msgs::Pose2D pose;
+                pose.x = node->x_list_[i];
+                pose.y = node->y_list_[i];
+                pose.theta = 0;
+                ans.push_back(pose);
+            }
+            node = node->father_node_;
+        }
+    }
 
+    path_.clear();
+    for(int i = 0; i < ans.size(); i++) {
+        path_.push_back(ans[i]);
+    }
+
+    //displayTree();
     
-
     return ans;
 }
 
@@ -202,6 +243,12 @@ void OptPath::subOriPath(nav_msgs::Path path) {
     //cout << "size of ori path: " << path_.size() << endl;
 
     optThePath();
+
+    // for(int i = 0; i < 6; i++) {
+    //     ros::Duration(1).sleep();
+    //     displayPath();
+    // }
+    displayPath();
 }
 
 void OptPath::displayPath() {
@@ -251,6 +298,21 @@ bool OptPath::pathObstacleCheck(MyPath path) {
         }
     }
     return false;
+}
+
+void OptPath::displayTree() {
+    sensor_msgs::PointCloud points;
+    points.header.frame_id = "map";
+    for(int i = 0; i < tree_.size(); i++) {
+        geometry_msgs::Point32 point;
+        for(int j = 0; j < tree_[i]->x_list_.size(); j++) {
+            point.x = tree_[i]->x_list_[j];
+            point.y = tree_[i]->y_list_[j];
+            point.z = 0;
+            points.points.push_back(point);
+        }
+    }
+    pub_tree_.publish(points);
 }
 
 int main(int argc, char** argv) {
