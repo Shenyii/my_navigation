@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/include",
                 "/opt/ros/melodic/include",
-                "/usr/local/include"
+                "/usr/local/include",
+                "include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

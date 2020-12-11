@@ -231,3 +231,6 @@ add_executable(opt_path src/opt_path.cpp src/opt_quintic_curve.cpp src/opt_bezie
 target_link_libraries(opt_path ${catkin_LIBRARIES})
 target_link_libraries(opt_path PRIVATE osqp::osqp)
 
+add_executable(generate_gallery src/generate_gallery.cpp)
+target_link_libraries(generate_gallery ${catkin_LIBRARIES})
+
