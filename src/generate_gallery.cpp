@@ -48,66 +48,68 @@ bool GenerateGallery::generateGallery() {
         path[i].y = ori_path_.poses[i].pose.position.y;
         path[i].z = ori_path_.poses[i].pose.position.z;
     }
-    Box box(path[0].x - 0.5 * map_resolution_, path[0].x + 0.5 * map_resolution_, path[0].y - 0.5 * map_resolution_, path[0].y + 0.5 * map_resolution_);
+    Box box(path[0].x, path[0].x, path[0].y, path[0].y);
     bool ext_x_min = 1;
     bool ext_x_max = 1;
     bool ext_y_min = 1;
     bool ext_y_max = 1;
-    while(path.size() != 0) {
-        if(path[0].x >= box.x_min_ && path[0].x <= box.x_max_ && path[0].y >= box.y_min_ && path[0].y <= box.y_max_) {
-            cout << "test0: " << path.size() << endl;
+    int n = 0;
+    while(path.size() != 0 && ros::ok()) {
+        if(path[0].x >= box.x_min_ - 0.5* map_resolution_ && 
+           path[0].x <= box.x_max_ + 0.5* map_resolution_ && 
+           path[0].y >= box.y_min_ - 0.5* map_resolution_ && 
+           path[0].y <= box.y_max_ + 0.5* map_resolution_) {
+            cout << "erase a node." << endl;
             path.erase(path.begin(), path.begin() + 1);
-            cout << "test1: " << path.size() << endl;
             continue;
         }
-        cout << "test0" << endl;
         if(ext_x_min == 0 && ext_x_max == 0 && ext_y_min == 0 && ext_y_max == 0) {
             gallerys_.push_back(box);
-            //////////////////////////
-            static int n = 0;
-            n++;
-            if(n == 1) {
-                break;
-            }
-            ///////////////////////////
-            box.x_min_ = path[0].x - 0.5 * map_resolution_;
-            box.x_max_ = path[0].x + 0.5 * map_resolution_;
-            box.y_min_ = path[0].y - 0.5 * map_resolution_;
-            box.x_max_ = path[0].y + 0.5 * map_resolution_;
+            // //////////////////////////
+            // cout << "generate a gallery." << n << endl;
+            // n++;
+            // if(n == 2) {
+            //     break;
+            // }
+            // ///////////////////////////
+            box.x_min_ = path[0].x;
+            box.x_max_ = path[0].x;
+            box.y_min_ = path[0].y;
+            box.y_max_ = path[0].y;
             ext_x_min = 1;
             ext_x_max = 1;
             ext_y_min = 1;
             ext_y_max = 1;
         }
-        cout << "test1" << endl;
         if(path[0].x < box.x_min_) {
+            cout << "left" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_x_min == 1) {
-                if(extendBox(box.x_min_ - 0.5 * map_resolution_, box.y_min_, box.x_min_ - 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_ - map_resolution_, box.y_min_, box.x_min_ - map_resolution_, box.y_max_) == true) {
+                    box.x_min_ -= map_resolution_;
                 }
                 else {
                     ext_x_min = 0;
                 }
             }
             if(ext_y_min == 1) {
-                if(extendBox(box.x_min_, box.y_min_ - 0.5 * map_resolution_, box.x_max_, box.y_max_ - 0.5 * map_resolution_) == true) {
-                    box.y_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_min_ - map_resolution_, box.x_max_, box.y_min_ - map_resolution_) == true) {
+                    box.y_min_ -= map_resolution_;
                 }
                 else {
                     ext_y_min = 0;
                 }
             }
             if(ext_x_max == 1) {
-                if(extendBox(box.x_max_ + 0.5 * map_resolution_, box.y_min_, box.x_max_ + 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_max_ + map_resolution_, box.y_min_, box.x_max_ + map_resolution_, box.y_max_) == true) {
+                    box.x_max_ += map_resolution_;
                 }
                 else {
                     ext_x_max = 0;
                 }
             }
             if(ext_y_max == 1) {
-                if(extendBox(box.x_min_, box.y_max_ + 0.5 * map_resolution_, box.x_max_, box.y_max_ + 0.5 * map_resolution_) == true) {
-                    box.y_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_max_ + map_resolution_, box.x_max_, box.y_max_ + map_resolution_) == true) {
+                    box.y_max_ += map_resolution_;
                 }
                 else {
                     ext_y_max = 0;
@@ -115,33 +117,34 @@ bool GenerateGallery::generateGallery() {
             }
         }
         else if(path[0].y < box.y_min_) {
+            cout << "down" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_y_min == 1) {
-                if(extendBox(box.x_min_, box.y_min_ - 0.5 * map_resolution_, box.x_max_, box.y_max_ - 0.5 * map_resolution_) == true) {
-                    box.y_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_min_ - map_resolution_, box.x_max_, box.y_min_ - map_resolution_) == true) {
+                    box.y_min_ -= map_resolution_;
                 }
                 else {
                     ext_y_min = 0;
                 }
             }
             if(ext_x_min == 1) {
-                if(extendBox(box.x_min_ - 0.5 * map_resolution_, box.y_min_, box.x_min_ - 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_ - map_resolution_, box.y_min_, box.x_min_ - map_resolution_, box.y_max_) == true) {
+                    box.x_min_ -= map_resolution_;
                 }
                 else {
                     ext_x_min = 0;
                 }
             }
             if(ext_x_max == 1) {
-                if(extendBox(box.x_max_ + 0.5 * map_resolution_, box.y_min_, box.x_max_ + 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_max_ + map_resolution_, box.y_min_, box.x_max_ + map_resolution_, box.y_max_) == true) {
+                    box.x_max_ += map_resolution_;
                 }
                 else {
                     ext_x_max = 0;
                 }
             }
             if(ext_y_max == 1) {
-                if(extendBox(box.x_min_, box.y_max_ + 0.5 * map_resolution_, box.x_max_, box.y_max_ + 0.5 * map_resolution_) == true) {
-                    box.y_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_max_ + map_resolution_, box.x_max_, box.y_max_ + map_resolution_) == true) {
+                    box.y_max_ += map_resolution_;
                 }
                 else {
                     ext_y_max = 0;
@@ -149,78 +152,82 @@ bool GenerateGallery::generateGallery() {
             }
         }
         else if(path[0].x > box.x_max_) {
+            cout << "right" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_x_max == 1) {
-                if(extendBox(box.x_max_ + 0.5 * map_resolution_, box.y_min_, box.x_max_ + 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_max_ + map_resolution_, box.y_min_, box.x_max_ + map_resolution_, box.y_max_) == true) {
+                    box.x_max_ += map_resolution_;
                 }
                 else {
                     ext_x_max = 0;
                 }
             }
             if(ext_x_min == 1) {
-                if(extendBox(box.x_min_ - 0.5 * map_resolution_, box.y_min_, box.x_min_ - 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_ - map_resolution_, box.y_min_, box.x_min_ - map_resolution_, box.y_max_) == true) {
+                    box.x_min_ -= map_resolution_;
                 }
                 else {
                     ext_x_min = 0;
                 }
             }
             if(ext_y_min == 1) {
-                if(extendBox(box.x_min_, box.y_min_ - 0.5 * map_resolution_, box.x_max_, box.y_max_ - 0.5 * map_resolution_) == true) {
-                    box.y_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_min_ - map_resolution_, box.x_max_, box.y_min_ - map_resolution_) == true) {
+                    box.y_min_ -= map_resolution_;
                 }
                 else {
                     ext_y_min = 0;
                 }
             }
             if(ext_y_max == 1) {
-                if(extendBox(box.x_min_, box.y_max_ + 0.5 * map_resolution_, box.x_max_, box.y_max_ + 0.5 * map_resolution_) == true) {
-                    box.y_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_max_ + map_resolution_, box.x_max_, box.y_max_ + map_resolution_) == true) {
+                    box.y_max_ += map_resolution_;
                 }
                 else {
                     ext_y_max = 0;
                 }
             }
+            cout << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
         }
         else if(path[0].y > box.y_max_) {
+            cout << "up" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_y_max == 1) {
-                if(extendBox(box.x_min_, box.y_max_ + 0.5 * map_resolution_, box.x_max_, box.y_max_ + 0.5 * map_resolution_) == true) {
-                    box.y_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_max_ + map_resolution_, box.x_max_, box.y_max_ + map_resolution_) == true) {
+                    box.y_max_ += map_resolution_;
                 }
                 else {
                     ext_y_max = 0;
                 }
             }
             if(ext_x_min == 1) {
-                if(extendBox(box.x_min_ - 0.5 * map_resolution_, box.y_min_, box.x_min_ - 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_ - map_resolution_, box.y_min_, box.x_min_ - map_resolution_, box.y_max_) == true) {
+                    box.x_min_ -= map_resolution_;
                 }
                 else {
                     ext_x_min = 0;
                 }
             }
             if(ext_y_min == 1) {
-                if(extendBox(box.x_min_, box.y_min_ - 0.5 * map_resolution_, box.x_max_, box.y_max_ - 0.5 * map_resolution_) == true) {
-                    box.y_min_ -= 0.5 * map_resolution_;
+                if(extendBox(box.x_min_, box.y_min_ - map_resolution_, box.x_max_, box.y_min_ - map_resolution_) == true) {
+                    box.y_min_ -= map_resolution_;
                 }
                 else {
                     ext_y_min = 0;
                 }
             }
             if(ext_x_max == 1) {
-                if(extendBox(box.x_max_ + 0.5 * map_resolution_, box.y_min_, box.x_max_ + 0.5 * map_resolution_, box.y_max_) == true) {
-                    box.x_max_ += 0.5 * map_resolution_;
+                if(extendBox(box.x_max_ + map_resolution_, box.y_min_, box.x_max_ + map_resolution_, box.y_max_) == true) {
+                    box.x_max_ += map_resolution_;
                 }
                 else {
                     ext_x_max = 0;
                 }
             }
         }
-        cout << "test2" << endl;
-
+        
         cout << path.size() << ", " << path[0].x << ", " << path[0].y << endl;
         cout << box.x_min_ << ", " << box.x_max_ << ", " << box.y_min_ << ", " << box.y_max_ << endl;
+        cout << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
     }
+    gallerys_.push_back(box);
 
     displayGallery();
 
@@ -230,7 +237,15 @@ bool GenerateGallery::generateGallery() {
 bool GenerateGallery::extendBox(double x0, double y0, double x1, double y1) {
     bool ans = true;
     double d = hypot(x0 - x1, y0 - y1);
-    for(int i = 0; i < d / map_resolution_; i++) {
+    if(d == 0) {
+        if(nodeObstacleCheck(x0, y0) == 1) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    for(int i = 0; i <= d / map_resolution_; i++) {
         double x = x0 + double(i) * (x1 - x0) * map_resolution_ / d;
         double y = y0 + double(i) * (y1 - y0) * map_resolution_ / d;
         if(nodeObstacleCheck(x, y) == 1) {
@@ -250,6 +265,7 @@ bool GenerateGallery::pathNodeInBox(double x, double y, Box box) {
 }
 
 void GenerateGallery::displayGallery() {
+    static int last_gallerys_num = 0;
     cout << "display the gallerys." << endl;
     visualization_msgs::MarkerArray markers;
     for(int i = 0; i < gallerys_.size(); i++) {
@@ -265,17 +281,43 @@ void GenerateGallery::displayGallery() {
         module.frame_locked = true;
         module.type = visualization_msgs::Marker::CUBE;
         module.action = visualization_msgs::Marker::ADD;
-        module.id = 2 * i;
+        module.id = i;
         module.pose.position.x = 0.5 * (gallerys_[i].x_min_ + gallerys_[i].x_max_);
         module.pose.position.y = 0.5 * (gallerys_[i].y_min_ + gallerys_[i].y_max_);
-        module.pose.position.z = -0.11;
+        module.pose.position.z = -0.1 -0.05 * i;
         module.scale.x = gallerys_[i].x_max_ - gallerys_[i].x_min_;
         module.scale.y = gallerys_[i].y_max_ - gallerys_[i].y_min_;
         module.scale.z = 0.05;
         markers.markers.push_back(module);
+
+        cout << gallerys_[i].x_min_ << ", " << gallerys_[i].x_max_ << ", "
+             << gallerys_[i].y_min_ << ", " << gallerys_[i].y_max_ << endl;
+    }
+    for(int i = 0; i < last_gallerys_num - int(gallerys_.size()); i++) {
+        visualization_msgs::Marker module;
+        module.header.frame_id = "map";
+        module.header.stamp = ros::Time::now();
+        module.ns = "";
+        module.color.r = 0.5f;
+        module.color.g = 0.8f;
+        module.color.b = 0.2f;
+        module.color.a = 0;
+        module.lifetime = ros::Duration();
+        module.frame_locked = true;
+        module.type = visualization_msgs::Marker::CUBE;
+        module.action = visualization_msgs::Marker::ADD;
+        module.id = i + gallerys_.size();
+        module.pose.position.x = 0;
+        module.pose.position.y = 0;
+        module.pose.position.z = 0;
+        module.scale.x = 0.1;
+        module.scale.y = 0.1;
+        module.scale.z = 0.1;
+        markers.markers.push_back(module);
     }
 
     pub_gallerys_.publish(markers);
+    last_gallerys_num = gallerys_.size();
 }
 
 int main(int argc, char** argv) {
