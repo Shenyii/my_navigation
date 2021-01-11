@@ -4,6 +4,7 @@ GenerateGallery::GenerateGallery() {
     sub_path_ = nh_.subscribe("/own_path", 2, &GenerateGallery::subPath, this);
     sub_map_ = nh_.subscribe("/map", 2, &GenerateGallery::subMap, this);
     pub_gallerys_ = nh_.advertise<visualization_msgs::MarkerArray>("/agvs", 2);
+    pub_gallerys2_ = nh_.advertise<std_msgs::Float32MultiArray>("/gallerys", 2);
     obstacle_threshold_ = 65;
 }
 
@@ -17,7 +18,9 @@ void GenerateGallery::worldToMap(double wx, double wy, int& mx, int& my) {
 void GenerateGallery::subPath(nav_msgs::Path path) {
     ori_path_ = path;
 
+    double det_time = ros::Time::now().toSec();
     generateGallery();
+    cout << "cost time of generate gallerys: " << ros::Time::now().toSec() - det_time << endl;
 }
 
 void GenerateGallery::subMap(nav_msgs::OccupancyGrid map) {
@@ -59,19 +62,11 @@ bool GenerateGallery::generateGallery() {
            path[0].x <= box.x_max_ + 0.5* map_resolution_ && 
            path[0].y >= box.y_min_ - 0.5* map_resolution_ && 
            path[0].y <= box.y_max_ + 0.5* map_resolution_) {
-            cout << "erase a node." << endl;
             path.erase(path.begin(), path.begin() + 1);
             continue;
         }
         if(ext_x_min == 0 && ext_x_max == 0 && ext_y_min == 0 && ext_y_max == 0) {
             gallerys_.push_back(box);
-            // //////////////////////////
-            // cout << "generate a gallery." << n << endl;
-            // n++;
-            // if(n == 2) {
-            //     break;
-            // }
-            // ///////////////////////////
             box.x_min_ = path[0].x;
             box.x_max_ = path[0].x;
             box.y_min_ = path[0].y;
@@ -82,7 +77,7 @@ bool GenerateGallery::generateGallery() {
             ext_y_max = 1;
         }
         if(path[0].x < box.x_min_) {
-            cout << "left" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+            //cout << "left" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_x_min == 1) {
                 if(extendBox(box.x_min_ - map_resolution_, box.y_min_, box.x_min_ - map_resolution_, box.y_max_) == true) {
                     box.x_min_ -= map_resolution_;
@@ -117,7 +112,7 @@ bool GenerateGallery::generateGallery() {
             }
         }
         else if(path[0].y < box.y_min_) {
-            cout << "down" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+            //cout << "down" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_y_min == 1) {
                 if(extendBox(box.x_min_, box.y_min_ - map_resolution_, box.x_max_, box.y_min_ - map_resolution_) == true) {
                     box.y_min_ -= map_resolution_;
@@ -152,7 +147,7 @@ bool GenerateGallery::generateGallery() {
             }
         }
         else if(path[0].x > box.x_max_) {
-            cout << "right" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+            //cout << "right" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_x_max == 1) {
                 if(extendBox(box.x_max_ + map_resolution_, box.y_min_, box.x_max_ + map_resolution_, box.y_max_) == true) {
                     box.x_max_ += map_resolution_;
@@ -185,10 +180,10 @@ bool GenerateGallery::generateGallery() {
                     ext_y_max = 0;
                 }
             }
-            cout << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+            //cout << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
         }
         else if(path[0].y > box.y_max_) {
-            cout << "up" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+            //cout << "up" << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
             if(ext_y_max == 1) {
                 if(extendBox(box.x_min_, box.y_max_ + map_resolution_, box.x_max_, box.y_max_ + map_resolution_) == true) {
                     box.y_max_ += map_resolution_;
@@ -223,11 +218,47 @@ bool GenerateGallery::generateGallery() {
             }
         }
         
-        cout << path.size() << ", " << path[0].x << ", " << path[0].y << endl;
-        cout << box.x_min_ << ", " << box.x_max_ << ", " << box.y_min_ << ", " << box.y_max_ << endl;
-        cout << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+        // cout << path.size() << ", " << path[0].x << ", " << path[0].y << endl;
+        // cout << box.x_min_ << ", " << box.x_max_ << ", " << box.y_min_ << ", " << box.y_max_ << endl;
+        // cout << ext_x_min << ext_x_max << ext_y_min << ext_y_max << endl;
+    }
+    while(ext_x_min == 1 || ext_x_max == 1 || ext_y_min == 1 || ext_y_max == 1 && ros::ok()) {
+        if(ext_x_min == 1) {
+            if(extendBox(box.x_min_ - map_resolution_, box.y_min_, box.x_min_ - map_resolution_, box.y_max_) == true) {
+                box.x_min_ -= map_resolution_;
+            }
+            else {
+                ext_x_min = 0;
+            }
+        }
+        if(ext_y_min == 1) {
+            if(extendBox(box.x_min_, box.y_min_ - map_resolution_, box.x_max_, box.y_min_ - map_resolution_) == true) {
+                box.y_min_ -= map_resolution_;
+            }
+            else {
+                ext_y_min = 0;
+            }
+        }
+        if(ext_x_max == 1) {
+            if(extendBox(box.x_max_ + map_resolution_, box.y_min_, box.x_max_ + map_resolution_, box.y_max_) == true) {
+                box.x_max_ += map_resolution_;
+            }
+            else {
+                ext_x_max = 0;
+            }
+        }
+        if(ext_y_max == 1) {
+            if(extendBox(box.x_min_, box.y_max_ + map_resolution_, box.x_max_, box.y_max_ + map_resolution_) == true) {
+                box.y_max_ += map_resolution_;
+            }
+            else {
+                ext_y_max = 0;
+            }
+        }
     }
     gallerys_.push_back(box);
+
+    pubGallerys();
 
     displayGallery();
 
@@ -264,9 +295,59 @@ bool GenerateGallery::pathNodeInBox(double x, double y, Box box) {
     return ans;
 }
 
+bool GenerateGallery::pointInGallery(double x, double y, Box box, double bias) {
+    bool ans = true;
+    if(x >= box.x_min_ - bias && x <= box.x_max_ + bias && y >= box.y_min_ - bias && y <= box.y_max_ + bias) {
+        return true;
+    }
+    else {
+        return false;
+    }
+
+    return ans;
+}
+
+bool GenerateGallery::twoGallerysIntersect(Box box0, Box box1) {
+    bool ans = true;
+    double x_min;
+    double x_max;
+    double y_min;
+    double y_max;
+    x_min = box0.x_min_ > box1.x_min_ ? box0.x_min_ : box1.x_min_;
+    x_max = box0.x_max_ < box1.x_max_ ? box0.x_max_ : box1.x_max_;
+    y_min = box0.y_min_ > box1.y_min_ ? box0.y_min_ : box1.y_min_;
+    y_max = box0.y_max_ < box1.y_max_ ? box0.y_max_ : box1.y_max_;
+    if((x_max - x_min >= 0) && (y_max - y_min >= 0)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+
+    return ans;
+}
+
+void GenerateGallery::pubGallerys() {
+    std_msgs::Float32MultiArray gallerys;
+    for(int i = 0; i < gallerys_.size() - 1; i++) {
+        if(twoGallerysIntersect(gallerys_[i], gallerys_[i + 1]) == 0) {
+            cout << "generate error gallerys." << endl;
+            return;
+        }
+    }
+    gallerys.layout.dim.resize(gallerys_.size());
+    for(int i = 0; i < gallerys_.size(); i++) {
+        gallerys.data.push_back(gallerys_[i].x_min_);
+        gallerys.data.push_back(gallerys_[i].x_max_);
+        gallerys.data.push_back(gallerys_[i].y_min_);
+        gallerys.data.push_back(gallerys_[i].y_max_);
+    }
+    pub_gallerys2_.publish(gallerys);
+}
+
 void GenerateGallery::displayGallery() {
     static int last_gallerys_num = 0;
-    cout << "display the gallerys." << endl;
+    cout << "display the gallerys. " << gallerys_.size() << endl;
     visualization_msgs::MarkerArray markers;
     for(int i = 0; i < gallerys_.size(); i++) {
         visualization_msgs::Marker module;

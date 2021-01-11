@@ -49,6 +49,8 @@ private:
     bool generateGallery();
     bool extendBox(double x0, double y0, double x1, double y1);
     bool pathNodeInBox(double x, double y, Box box);
+    bool pointInGallery(double x, double y, Box box, double bias);
+    bool twoGallerysIntersect(Box box0, Box box1);
 
     ros::NodeHandle nh_;
     nav_msgs::Path ori_path_;
@@ -56,9 +58,11 @@ private:
     nav_msgs::OccupancyGrid ori_map_;
     ros::Subscriber sub_map_;
     ros::Publisher pub_gallerys_;
+    ros::Publisher pub_gallerys2_;
 
     void subPath(nav_msgs::Path path);
     void subMap(nav_msgs::OccupancyGrid map);
+    void pubGallerys();
     void displayGallery();
 };
 
